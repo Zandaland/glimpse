@@ -1,3 +1,49 @@
+/* Minimal Toast Notification Styles (AI Sidebar Branding) */
+/* Minimal Toast Notification Styles (AI Sidebar Branding) */
+/* Minimal Toast Notification Styles (AI Sidebar Branding) */
+.ai-toast {
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%) scale(0.97);
+    min-width: 220px;
+    max-width: 90vw;
+    background: #23272f;
+    color: #fff;
+    border-radius: 8px;
+    box-shadow: 0 2px 16px rgba(0,0,0,0.18);
+    padding: 12px 24px;
+    font-size: 15px;
+    font-family: inherit;
+    display: flex;
+    align-items: center;
+    z-index: 9999;
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s, transform 0.3s;
+    margin-bottom: 0;
+    margin-top: 0;
+}
+.ai-toast.show {
+    opacity: 1;
+    pointer-events: auto;
+    transform: translateX(-50%) scale(1);
+}
+.ai-toast-success {
+    border-left: 4px solid #4ade80;
+}
+.ai-toast-error {
+    border-left: 4px solid #ef4444;
+}
+.ai-toast-icon {
+    font-size: 18px;
+    margin-right: 10px;
+    font-weight: bold;
+    color: inherit;
+}
+.ai-toast-message {
+    flex: 1;
+    word-break: break-word;
+}
 /* Delete All History Button Styling */
 .delete-all-btn {
     display: flex;

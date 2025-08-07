@@ -59,7 +59,7 @@
     "icon-96.svg"
   ],
   
-  "content_security_policy": "script-src 'self' https://unpkg.com; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://openrouter.ai https://www.youtube.com https://unpkg.com",
+  "content_security_policy": "script-src 'self' https://unpkg.com; object-src 'self'; connect-src 'self' http://35.222.85.252:10000 https://generativelanguage.googleapis.com https://openrouter.ai https://www.youtube.com https://unpkg.com",
   
   "commands": {
     "_execute_sidebar_action": {

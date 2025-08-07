@@ -59,7 +59,7 @@ function fallbackIcons() {
 class AIChat {
     async fetchTranscriptFromServer(videoId) {
         try {
-            const response = await fetch(`http://localhost:10000/transcript?video_id=${videoId}`);
+            const response = await fetch(`http://35.222.85.252:10000/transcript?video_id=${videoId}`);
             const data = await response.json();
             if (data.transcript) {
                 // Store transcript for AI context, but do not show in message input
@@ -657,20 +657,64 @@ class AIChat {
     }
 
     showSuccessMessage(message) {
-        // You could implement a toast notification here
-        console.log(message);
+        // Friendlier, less technical success messages
+        let friendlyMsg = message;
+        if (message.includes('Transcript fetched')) friendlyMsg = 'Got the transcript!';
+        else if (message.includes('Settings saved')) friendlyMsg = 'Settings updated!';
+        else if (message.includes('Captured content')) friendlyMsg = 'Webpage captured!';
+        else if (message.includes('Screenshot captured')) friendlyMsg = 'Screenshot saved!';
+        else if (message.includes('All chat history deleted')) friendlyMsg = 'Chat history cleared.';
+        this.showToast(friendlyMsg, 'success');
     }
 
     showErrorMessage(message) {
-        const errorDiv = document.createElement('div');
-        errorDiv.className = 'error-message';
-        errorDiv.textContent = message;
-        this.chatMessages.appendChild(errorDiv);
-        this.scrollToBottom();
-        
+        // Friendlier, less technical error messages
+        let friendlyMsg = message;
+        if (message.includes('Server unavailable')) friendlyMsg = 'Couldn\'t get the transcript. Trying another way...';
+        else if (message.includes('No transcript found')) friendlyMsg = 'No transcript found for this video.';
+        else if (message.includes('Failed to save settings')) friendlyMsg = 'Couldn\'t save your settings.';
+        else if (message.includes('Failed to capture tab content')) friendlyMsg = 'Couldn\'t capture this page.';
+        else if (message.includes('Failed to capture screenshot')) friendlyMsg = 'Couldn\'t take a screenshot.';
+        else if (message.includes('Error deleting all history')) friendlyMsg = 'Couldn\'t clear chat history.';
+        else if (message.includes('No message to retry')) friendlyMsg = 'Nothing to retry yet.';
+        else if (message.includes('Failed to get response from AI')) friendlyMsg = 'Hmm, something went wrong. Try again!';
+        this.showToast(friendlyMsg, 'error');
+    }
+
+    showToast(message, type = 'success') {
+        // Remove any existing toast
+        const existingToast = document.querySelector('.ai-toast');
+        if (existingToast) existingToast.remove();
+
+        const toast = document.createElement('div');
+        toast.className = `ai-toast ai-toast-${type}`;
+        toast.innerHTML = `
+            <span class="ai-toast-icon">${type === 'success' ? '✓' : '✕'}</span>
+            <span class="ai-toast-message">${message}</span>
+        `;
+
+        // Insert above the input box (before input's parent container)
+        if (this.messageInput && this.messageInput.parentNode) {
+            const inputWrapper = this.messageInput.parentNode;
+            if (inputWrapper.previousElementSibling) {
+                inputWrapper.parentNode.insertBefore(toast, inputWrapper);
+            } else {
+                inputWrapper.parentNode.insertBefore(toast, inputWrapper.nextSibling);
+            }
+        } else {
+            document.body.appendChild(toast);
+        }
+
+        // Animate in
         setTimeout(() => {
-            errorDiv.remove();
-        }, 5000);
+            toast.classList.add('show');
+        }, 10);
+
+        // Remove after 3 seconds
+        setTimeout(() => {
+            toast.classList.remove('show');
+            setTimeout(() => toast.remove(), 300);
+        }, 3000);
     }
 
     showRetryButton() {
