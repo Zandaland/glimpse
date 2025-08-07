@@ -2,7 +2,7 @@
 
 **Intelligent AI assistant sidebar** with YouTube transcript analysis, screenshot capture, tab content capture, and file upload support using Gemini and OpenRouter APIs.
 
-![License](https://img.shields.io/badge/license-All%20Rights%20Reserved-red)
+![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-1.0.5-blue)
 ![Firefox](https://img.shields.io/badge/Firefox-Compatible-orange)
 
@@ -104,7 +104,7 @@ Contributions are welcome! Please feel free to submit a Pull Request. For major 
 
 ## 📝 License
 
-All rights reserved. This project is proprietary software.
+This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
 ## 🐛 Issues & Support
 
