@@ -1,0 +1,32 @@
+<svg width="96" height="96" viewBox="0 0 96 96" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#ff8e8e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ff5722;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d32f2f;stop-opacity:1" />
+    </linearGradient>
+    <filter id="shadow" x="-50%" y="-50%" width="200%" height="200%">
+      <feDropShadow dx="0" dy="4" stdDeviation="6" flood-color="rgba(0,0,0,0.15)"/>
+    </filter>
+  </defs>
+  
+  <!-- Background with gradient and rounded corners -->
+  <rect width="96" height="96" rx="20" ry="20" fill="url(#primaryGradient)" filter="url(#shadow)"/>
+  
+  <!-- Robot icon centered -->
+  <g transform="translate(24, 24)" stroke="white" stroke-width="2.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Robot body -->
+    <rect width="28" height="28" x="10" y="12" rx="4" ry="4"/>
+    <!-- Antennas -->
+    <path d="m30 12-2-4"/>
+    <path d="m18 12-2-4"/>
+    <!-- Base -->
+    <path d="m20 36h12"/>
+    <!-- Head antenna -->
+    <circle cx="24" cy="4" r="2"/>
+    <!-- Eyes -->
+    <circle cx="18" cy="22" r="2"/>
+    <circle cx="30" cy="22" r="2"/>
+  </g>
+</svg>

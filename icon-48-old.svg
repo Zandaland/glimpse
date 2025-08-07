@@ -1,0 +1,29 @@
+<svg width="48" height="48" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="primaryGradient48" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" style="stop-color:#ff6b6b;stop-opacity:1" />
+      <stop offset="25%" style="stop-color:#ff8e8e;stop-opacity:1" />
+      <stop offset="50%" style="stop-color:#ff5722;stop-opacity:1" />
+      <stop offset="100%" style="stop-color:#d32f2f;stop-opacity:1" />
+    </linearGradient>
+  </defs>
+  
+  <!-- Background with gradient and rounded corners -->
+  <rect width="48" height="48" rx="10" ry="10" fill="url(#primaryGradient48)"/>
+  
+  <!-- Robot icon centered -->
+  <g transform="translate(12, 12)" stroke="white" stroke-width="1.5" fill="none" stroke-linecap="round" stroke-linejoin="round">
+    <!-- Robot body -->
+    <rect width="14" height="14" x="5" y="6" rx="2" ry="2"/>
+    <!-- Antennas -->
+    <path d="m15 6-1-2"/>
+    <path d="m9 6-1-2"/>
+    <!-- Base -->
+    <path d="m10 18h6"/>
+    <!-- Head antenna -->
+    <circle cx="12" cy="2" r="1"/>
+    <!-- Eyes -->
+    <circle cx="9" cy="11" r="1"/>
+    <circle cx="15" cy="11" r="1"/>
+  </g>
+</svg>

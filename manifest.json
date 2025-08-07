@@ -1,0 +1,77 @@
+{
+  "manifest_version": 2,
+  "name": "Glimpse",
+  "version": "1.0.5",
+  "description": "Glimpse - Intelligent AI assistant sidebar with YouTube transcript analysis, screenshot capture, tab content capture, and file upload support using Gemini and OpenRouter APIs.",
+  "author": "Zandaland",
+  "homepage_url": "https://github.com/zandaland/ai-chat-sidebar",
+  
+  "permissions": [
+    "activeTab",
+    "tabs",
+    "storage",
+    "downloads",
+    "<all_urls>",
+    "https://generativelanguage.googleapis.com/*",
+    "https://openrouter.ai/*"
+  ],
+  
+  "background": {
+    "scripts": ["background.js"],
+    "persistent": false
+  },
+  
+  "sidebar_action": {
+    "default_title": "Glimpse",
+    "default_panel": "sidebar.html",
+    "default_icon": {
+      "48": "icon-48.png",
+      "96": "icon-96.png"
+    }
+  },
+  
+  "browser_action": {
+    "default_title": "Toggle Glimpse Sidebar",
+    "default_icon": {
+      "48": "icon-48.png",
+      "96": "icon-96.png"
+    }
+  },
+  
+  "icons": {
+    "48": "icon-48.png",
+    "96": "icon-96.png"
+  },
+  
+  "applications": {
+    "gecko": {
+      "id": "aziz@briskl.tech",
+      "strict_min_version": "58.0"
+    }
+  },
+  
+  "web_accessible_resources": [
+    "sidebar.html",
+    "sidebar.css",
+    "retry.css",
+    "sidebar.js",
+    "icon-48.svg",
+    "icon-96.svg"
+  ],
+  
+  "content_security_policy": "script-src 'self' https://unpkg.com; object-src 'self'; connect-src 'self' https://generativelanguage.googleapis.com https://openrouter.ai https://www.youtube.com https://unpkg.com",
+  
+  "commands": {
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "F1"
+      }
+    },
+    "toggle-sidebar": {
+      "suggested_key": {
+        "default": "Ctrl+Shift+Y"
+      },
+      "description": "Toggle Glimpse Sidebar"
+    }
+  }
+}

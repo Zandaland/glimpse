@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Glimpse</title>
+    <link rel="stylesheet" href="sidebar.css">
+    <link rel="stylesheet" href="retry.css">
+    <!-- Lucide Icons CDN -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+</head>
+<body>
+    <div class="chat-container">
+        <header class="chat-header">
+            <div class="header-content">
+                <div class="ai-avatar">
+                    <i data-lucide="bot" style="width:20px;height:20px;"></i>
+                </div>
+                <div class="header-text">
+                    <h1>Glimpse</h1>
+                    <span class="status-indicator">Ready</span>
+                </div>
+                <div class="header-buttons">
+                    <button class="header-btn" id="historyBtn" title="Chat History">
+                        <i data-lucide="history" style="width:18px;height:18px;"></i>
+                    </button>
+                    <button class="header-btn" id="newSessionBtn" title="New Session">
+                        <i data-lucide="plus" style="width:18px;height:18px;"></i>
+                    </button>
+                    <button class="header-btn" id="settingsBtn" title="Settings">
+                        <i data-lucide="settings" style="width:18px;height:18px;"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <div class="settings-panel" id="settingsPanel">
+            <div class="settings-content">
+                <div class="settings-header">
+                    <h3>
+                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <i data-lucide="settings" style="width:20px;height:20px;"></i>
+                        </svg>
+                        Settings
+                    </h3>
+                    <button class="close-settings-btn" id="closeSettingsBtn">
+                        <i data-lucide="x" style="width:16px;height:16px;"></i>
+                    </button>
+                </div>
+                <div class="setting-group">
+                    <label for="providerSelect">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <i data-lucide="globe" style="width:16px;height:16px;"></i>
+                        </svg>
+                        Provider
+                    </label>
+                    <select id="providerSelect">
+                        <option value="google">Google Gemini</option>
+                        <option value="openrouter">OpenRouter</option>
+                    </select>
+                </div>
+                <div class="setting-group">
+                    <label for="apiKey">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <i data-lucide="key" style="width:16px;height:16px;"></i>
+                        </svg>
+                        <span id="apiKeyLabel">Gemini API Key</span>
+                    </label>
+                    <div class="input-wrapper" id="geminiKeyWrapper">
+                        <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
+                        <button class="toggle-password" type="button">
+                            <i data-lucide="eye" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                    <div class="input-wrapper" id="openrouterKeyWrapper" style="display:none; margin-top:8px;">
+                        <input type="password" id="openrouterApiKey" placeholder="Enter your OpenRouter API key">
+                        <button class="toggle-password" type="button">
+                            <i data-lucide="eye" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                    <button id="saveSettings" class="primary-btn">
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <i data-lucide="save" style="width:16px;height:16px;"></i>
+                        </svg>
+                        Save Settings
+                    </button>
+                </div>
+                <div class="setting-group">
+                    <label for="modelSelect">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <i data-lucide="cpu" style="width:16px;height:16px;"></i>
+                    </svg>
+                    Model Name
+                </label>
+                <input type="text" id="modelInput" placeholder="e.g. gemini-2.5-flash" autocomplete="off">
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="chatMessages">
+            <div class="welcome-message">
+                <div class="ai-avatar large">
+                    <i data-lucide="bot" style="width:28px;height:28px;"></i>
+                </div>
+                <h2>Welcome to Glimpse</h2>
+                <p>I'm here to help you with any questions or tasks. Please configure your Gemini API key in settings to get started.</p>
+                <div class="welcome-actions">
+                    <button class="action-btn" id="configureSettingsBtn">
+                        <i data-lucide="settings" style="width:16px;height:16px;"></i>
+                        Configure Settings
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="chat-input-container">
+            <div class="file-preview" id="filePreview"></div>
+            <div class="chat-input-wrapper">
+                <input type="file" id="fileInput" accept="image/*,video/*,.txt,.md,.pdf,.doc,.docx" multiple style="display: none;">
+                
+                <div class="input-actions-left">
+                    <button id="captureTabButton" class="action-btn secondary" title="Capture current tab content (text)">
+                        <i data-lucide="file-text" style="width:16px;height:16px;"></i>
+                    </button>
+                    <button id="screenshotButton" class="action-btn screenshot" title="Take screenshot of current tab">
+                        <i data-lucide="camera" style="width:16px;height:16px;"></i>
+                    </button>
+                    <button id="youtubeAnalysisButton" class="action-btn youtube" title="Analyze YouTube video (transcript + visual)">
+                        <i data-lucide="youtube" style="width:16px;height:16px;"></i>
+                    </button>
+                    <button id="attachButton" class="action-btn attach" title="Attach files">
+                        <i data-lucide="paperclip" style="width:16px;height:16px;"></i>
+                    </button>
+                </div>
+                
+                <div class="input-container">
+                    <textarea id="messageInput" placeholder="Ask me anything... (Ctrl+V to paste images)" rows="1"></textarea>
+                    <div class="input-actions-right">
+                        <button id="sendButton" class="send-button" disabled>
+                            <i data-lucide="send" style="width:18px;height:18px;"></i>
+                        </button>
+                        <button id="stopButton" class="stop-button" style="display: none;">
+                            <i data-lucide="square" style="width:16px;height:16px;"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- History Panel -->
+        <div class="history-panel" id="historyPanel">
+            <div class="history-header">
+                <div class="history-title">
+                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <i data-lucide="history" style="width:20px;height:20px;"></i>
+                    </svg>
+                    <h3>Chat History</h3>
+                </div>
+                <button class="delete-all-btn" id="deleteAllHistoryBtn" title="Delete All History" style="margin-right:8px;">
+                    <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete All
+                </button>
+                <button class="close-btn" id="closeHistoryBtn">
+                    <i data-lucide="x" style="width:16px;height:16px;"></i>
+                </button>
+            </div>
+            <div class="history-content" id="historyContent">
+                <div class="no-history">
+                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <i data-lucide="message-square" style="width:48px;height:48px;"></i>
+                    </svg>
+                    <p>No chat history yet</p>
+                    <span>Start a conversation to see your history here</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="sidebar.js"></script>
+</body>
+</html>
