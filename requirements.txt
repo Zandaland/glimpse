@@ -1,3 +1,0 @@
-flask
-youtube-transcript-api
-requests

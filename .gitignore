@@ -1,0 +1,24 @@
+# Build artifacts
+*.xpi
+*.zip
+temp_package/
+
+# Development files
+*.tmp
+*.temp
+*-old.*
+test-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE files
+.vscode/
+.idea/
+
+# Logs
+*.log
+
+# Package managers
+node_modules/
