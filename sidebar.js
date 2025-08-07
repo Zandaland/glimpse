@@ -117,38 +117,61 @@ class AIChat {
 
     // Simple markdown parser
     parseMarkdown(text) {
-        return text
-            // Headers
+        const escapeHtml = (str) => str
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#39;');
+
+        // First handle fenced code blocks, supporting optional language and Windows newlines
+        let html = text.replace(/```([a-zA-Z0-9_\-]+)?\r?\n([\s\S]*?)```/gim, (match, lang, code) => {
+            const codeId = 'code_' + Math.random().toString(36).substr(2, 9);
+            const languageLabel = (lang || 'Code').toString();
+            const escaped = escapeHtml(code).replace(/\n/g, '__GLIMPSE_CODE_NL__');
+            return `<div class="code-block-container">
+                <div class="code-block-header">
+                    <span class="code-block-language">${languageLabel}</span>
+                    <button class="copy-code-btn" data-code-id="${codeId}">
+                        <i data-lucide="copy" style="width:14px;height:14px;"></i>
+                        Copy
+                    </button>
+                </div>
+                <pre><code id="${codeId}" class="language-${languageLabel}">${escaped}</code></pre>
+            </div>`;
+        });
+
+        // Headers
+        html = html
             .replace(/^### (.*$)/gim, '<h3>$1</h3>')
             .replace(/^## (.*$)/gim, '<h2>$1</h2>')
-            .replace(/^# (.*$)/gim, '<h1>$1</h1>')
-            // Code blocks with copy button
-            .replace(/```([\s\S]*?)```/gim, (match, code) => {
-                const codeId = 'code_' + Math.random().toString(36).substr(2, 9);
-                return `<div class="code-block-container">
-                    <div class="code-block-header">
-                        <span class="code-block-language">Code</span>
-                        <button class="copy-code-btn" data-code-id="${codeId}">
-                            <i data-lucide="copy" style="width:14px;height:14px;"></i>
-                            Copy
-                        </button>
-                    </div>
-                    <pre><code id="${codeId}">${code}</code></pre>
-                </div>`;
-            })
-            // Inline code
-            .replace(/`([^`]+)`/gim, '<code>$1</code>')
-            // Bold
+            .replace(/^# (.*$)/gim, '<h1>$1</h1>');
+
+        // Inline code (escape content)
+        html = html.replace(/`([^`]+)`/gim, (m, inline) => `<code>${escapeHtml(inline)}</code>`);
+
+        // Bold / Italic
+        html = html
             .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-            // Italic
-            .replace(/\*(.*?)\*/gim, '<em>$1</em>')
-            // Links
-            .replace(/\[([^\]]+)\]\(([^)]+)\)/gim, '<a href="$2" target="_blank">$1</a>')
-            // Lists
+            .replace(/\*(.*?)\*/gim, '<em>$1</em>');
+
+        // Links
+        html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, (m, textPart, href) => {
+            const safeHref = href;
+            return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${textPart}</a>`;
+        });
+
+        // Lists (very simple)
+        html = html
             .replace(/^\* (.*$)/gim, '<li>$1</li>')
-            .replace(/(<li>.*<\/li>)/gims, '<ul>$1</ul>')
-            // Line breaks
-            .replace(/\n/gim, '<br>');
+            .replace(/(<li>[\s\S]*?<\/li>)/gim, '<ul>$1</ul>');
+
+        // Line breaks
+        html = html.replace(/\n/gim, '<br>');
+        // Restore protected code newlines
+        html = html.replace(/__GLIMPSE_CODE_NL__/g, '\n');
+
+        return html;
     }
 
     initializeElements() {
@@ -1012,14 +1035,77 @@ class AIChat {
             } else {
                 currentText += ' ' + words[i];
             }
-            // Render markdown in real-time as text streams
-            const html = this.parseMarkdown(currentText);
-            messageElement.innerHTML = html;
-            this.scrollToBottom();
+            // Render markdown in real-time with progressive code block support
+            const fenceMatches = currentText.match(/```/g);
+            if (fenceMatches && fenceMatches.length % 2 === 1) {
+                // There is an open (unclosed) code fence → render everything before as markdown,
+                // and render a live code block for the open fence content
+                const openIndex = currentText.lastIndexOf('```');
+                const beforeFence = currentText.slice(0, openIndex);
+                const afterFence = currentText.slice(openIndex + 3);
+
+                // Extract optional language and code content so far
+                let languageLabel = 'Code';
+                let codeSoFar = '';
+                const firstLineBreakIdx = afterFence.indexOf('\n');
+                if (firstLineBreakIdx !== -1) {
+                    const possibleLang = afterFence.slice(0, firstLineBreakIdx).trim();
+                    if (possibleLang.length > 0 && /^[a-zA-Z0-9_\-]+$/.test(possibleLang)) {
+                        languageLabel = possibleLang;
+                        codeSoFar = afterFence.slice(firstLineBreakIdx + 1);
+                    } else {
+                        codeSoFar = afterFence;
+                    }
+                } else {
+                    const possibleLang = afterFence.trim();
+                    if (possibleLang.length > 0 && /^[a-zA-Z0-9_\-]+$/.test(possibleLang)) {
+                        languageLabel = possibleLang;
+                    }
+                    codeSoFar = '';
+                }
+
+                const htmlBefore = this.parseMarkdown(beforeFence);
+                if (!messageElement.dataset.liveCodeId) {
+                    messageElement.dataset.liveCodeId = 'code_live_' + Math.random().toString(36).slice(2, 9);
+                }
+                const codeId = messageElement.dataset.liveCodeId;
+
+                const escapeHtml = (str) => str
+                    .replace(/&/g, '&amp;')
+                    .replace(/</g, '&lt;')
+                    .replace(/>/g, '&gt;')
+                    .replace(/\"/g, '&quot;')
+                    .replace(/'/g, '&#39;');
+                const escapedCode = escapeHtml(codeSoFar);
+
+                const liveBlock = `
+                    <div class="code-block-container">
+                        <div class="code-block-header">
+                            <span class="code-block-language">${languageLabel}</span>
+                            <button class="copy-code-btn" data-code-id="${codeId}">
+                                <i data-lucide="copy" style="width:14px;height:14px;"></i>
+                                Copy
+                            </button>
+                        </div>
+                        <pre><code id="${codeId}" class="language-${languageLabel}">${escapedCode}</code></pre>
+                    </div>
+                `;
+
+                messageElement.innerHTML = htmlBefore + liveBlock;
+                renderLucideIcons();
+                this.scrollToBottom();
+            } else {
+                // No open fence → render normally
+                const html = this.parseMarkdown(currentText);
+                messageElement.innerHTML = html;
+                this.scrollToBottom();
+            }
         }
         this.isStreaming = false;
         // Remove typing cursor animation
         messageElement.parentElement.classList.remove('typing-text');
+        // Ensure icons (e.g., copy button) render after the final content is in place
+        renderLucideIcons();
         return !wasAborted;
     }
 
