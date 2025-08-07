@@ -20,7 +20,13 @@
 
 ## 🚀 Installation
 
-### Firefox (Recommended)
+### 🦊 Firefox Add-ons Store (Recommended)
+
+**[📥 Install from Mozilla Add-ons](https://addons.mozilla.org/en-US/firefox/addon/glimpse-ai-chat-sidebar/)**
+
+The easiest way to install Glimpse is directly from the official Firefox Add-ons store.
+
+### Manual Installation
 
 #### Method 1: Temporary Installation (Development)
 1. Open Firefox and navigate to `about:debugging`
@@ -29,7 +35,7 @@
 4. Select the `manifest.json` file from this repository
 5. The extension will be loaded until Firefox restarts
 
-#### Method 2: Permanent Installation
+#### Method 2: Manual XPI Installation
 1. Download or clone this repository
 2. Run `package-simple.ps1` to create the `.xpi` file
 3. Drag and drop the `.xpi` file into Firefox
