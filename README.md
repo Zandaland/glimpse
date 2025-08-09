@@ -1,6 +1,6 @@
 # 🔮 Glimpse
 
-**Intelligent AI assistant sidebar** with YouTube transcript analysis, screenshot capture, tab content capture, and file upload support using Gemini and OpenRouter APIs.
+**Intelligent AI assistant sidebar** with YouTube transcript analysis, screenshot capture, auto-attach active tab content, interactive help, and file upload support using Gemini and OpenRouter APIs. Now supports Google Search grounding (citations) for Gemini.
 
 ![License](https://img.shields.io/badge/license-MIT-green)
 ![Version](https://img.shields.io/badge/version-1.0.5-blue)
@@ -12,10 +12,17 @@
 - 📺 **YouTube Transcript Analysis** - Fetch and analyze YouTube video transcripts
 - 📸 **Screenshot Capture** - Capture and analyze screenshots with AI
 - 📄 **Tab Content Capture** - Extract and analyze content from web pages
+- 🔗 **Auto‑include Active Tab** - Optionally auto‑attach the current tab’s main content when sending
 - 📁 **File Upload Support** - Upload and analyze documents, images, and more
 - 🔑 **Multiple AI Providers** - Support for Gemini and OpenRouter APIs
+- 🌐 **Google Search Grounding** - Let Gemini consult the web and add inline citations (toggle in Settings)
 - 💾 **Chat History** - Save and manage conversation history locally
 - ⚙️ **Configurable Settings** - Customize API keys, models, and preferences
+- 🆘 **Built‑in Tutorial** - Help button opens a step‑by‑step guide with interactive actions
+- 💬 **@Mentions for Tabs** - Type `@` to attach open tabs as context
+- 🔁 **Copy/Retry** - Copy any message and retry AI responses easily
+- 🧱 **Rich Code Blocks** - Clean formatting with copy buttons
+- 🧑‍💼 **Personalization (Profile)** - Add “About me,” attach `.txt/.md/.pdf` files, auto‑generate a compact profile summary, and choose whether to include it by default or only for the next message
 - 🔐 **Privacy First** - All data stored locally, no analytics or tracking
 
 ## 🚀 Installation
@@ -53,7 +60,15 @@ While primarily designed for Firefox, basic functionality may work in Chrome:
 3. **Configure API keys** in the settings:
    - **Gemini API**: Get your free API key from [Google AI Studio](https://aistudio.google.com/app/apikey)
    - **OpenRouter API**: Get your API key from [OpenRouter](https://openrouter.ai/keys)
-4. **Start chatting** with your AI assistant!
+4. Optional: Enable **Google Search grounding** to get real‑time citations
+5. Optional: Enable **Auto‑include active tab** to attach the current page content automatically
+6. **Start chatting** with your AI assistant!
+
+### Keyboard & Quick actions
+- F1 or Ctrl+Shift+Y: toggle sidebar
+- Click the logo: start a new session
+- Enter to send, Shift+Enter for newline
+- Use the toolbar to Capture Page, Screenshot, YouTube Analysis, or Attach Files
 
 ## 🛠️ Development
 
@@ -82,6 +97,7 @@ glimpse/
 ├── sidebar.css        # Main styling
 ├── sidebar.js         # Core functionality and AI logic
 ├── retry.css          # Additional styling
+├── transcript-server/ # Optional helper for YouTube transcripts (Docker/Python)
 ├── icons/             # Extension icons
 ├── package-simple.ps1 # Build script
 └── README.md          # This file
@@ -90,9 +106,29 @@ glimpse/
 ### Key Functions (sidebar.js)
 - `sendMessage()` - Handles user input and AI responses
 - `callGeminiAPI()` - Makes API calls to AI services
+- `captureTabAsFile()` / `captureCurrentTab()` - Extract main content from active tab
 - `analyzeYouTubeVideo()` - YouTube transcript extraction
 - `captureScreenshot()` - Screenshot functionality
 - `addMessage()` - Message rendering and display
+
+### Google Search Grounding
+- Toggle “Enable Google Search grounding” in Settings. For Gemini 2.x it uses `google_search`; for Gemini 1.5 it falls back to legacy dynamic retrieval. Responses include inline citations when provided.
+
+### Auto‑include Active Tab
+- Toggle “Auto‑include active tab when sending.” The extension captures the main content from the current tab and attaches it as a “Webpage” file (skips internal pages like `about:`). This works like the Capture Page button, but automatically.
+
+### Personalization (Profile)
+Glimpse can personalize responses using a lightweight profile you control.
+
+- Open Settings → “Personalization (Profile)”
+  - Write your “About me” details (interests, goals, writing style, do/don’ts)
+  - Optionally attach reference files (`.txt`, `.md`, `.pdf`)
+  - Click “Generate summary” to create a compact profile summary that the model can use efficiently
+  - Choose how to include your profile:
+    - “Include by default” — always include in prompts
+    - “Include for the next message only” — one‑off include
+- Your profile is stored locally in the browser. You can edit or remove it anytime.
+- When included, Glimpse prepends a small `[User Profile]` context block to your conversation turn.
 
 ## 🔒 Privacy
 

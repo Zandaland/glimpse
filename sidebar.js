@@ -801,6 +801,25 @@ Safety and privacy:
             }
         });
 
+        // Close panels when clicking anywhere inside the sidebar but outside the panels
+        if (this.chatContainer) {
+            this.chatContainer.addEventListener('click', (e) => {
+                // Ignore clicks that originate from within the settings panel itself
+                const clickedInsideSettings = this.settingsPanel && this.settingsPanel.contains(e.target);
+                const clickedSettingsBtn = this.settingsBtn && this.settingsBtn.contains(e.target);
+                if (this.settingsPanel && this.settingsPanel.classList.contains('open') && !clickedInsideSettings && !clickedSettingsBtn) {
+                    this.closeSettings();
+                }
+
+                // History panel: close when clicking outside it (but inside sidebar)
+                const clickedInsideHistory = this.historyPanel && this.historyPanel.contains(e.target);
+                const clickedHistoryBtn = this.historyBtn && this.historyBtn.contains(e.target);
+                if (this.historyPanel && this.historyPanel.classList.contains('open') && !clickedInsideHistory && !clickedHistoryBtn) {
+                    this.closeHistory();
+                }
+            });
+        }
+
         // Prevent settings panel clicks from bubbling up, but allow close button to work
         this.settingsPanel.addEventListener('click', (e) => {
             // Don't prevent propagation if clicking the close button
@@ -1068,12 +1087,12 @@ Safety and privacy:
 
     async loadSettings() {
         try {
-            const result = await browser.storage.local.get(['apiKey', 'openrouterApiKey', 'provider', 'model', 'includePageUrl', 'enableGoogleSearch', 'profile']);
+            const result = await browser.storage.local.get(['apiKey', 'openrouterApiKey', 'provider', 'model', 'includeActiveTab', 'enableGoogleSearch', 'profile']);
             this.apiKey = result.apiKey || '';
             this.openrouterApiKey = result.openrouterApiKey || '';
             this.provider = result.provider || 'google';
             this.model = result.model || 'gemini-2.5-flash';
-            this.includePageUrl = !!result.includePageUrl;
+            this.includeActiveTab = !!result.includeActiveTab;
             this.enableGoogleSearch = !!result.enableGoogleSearch;
             if (result.profile) {
                 this.profile = {
@@ -1088,8 +1107,8 @@ Safety and privacy:
             this.openrouterApiKeyInput.value = this.openrouterApiKey;
             this.modelInput.value = this.model;
             if (this.providerSelect) this.providerSelect.value = this.provider;
-            const includeUrlCheckbox = document.getElementById('includePageUrlCheckbox');
-            if (includeUrlCheckbox) includeUrlCheckbox.checked = this.includePageUrl;
+            const includeActiveTabCheckbox = document.getElementById('includeActiveTabCheckbox');
+            if (includeActiveTabCheckbox) includeActiveTabCheckbox.checked = this.includeActiveTab;
             if (this.enableGoogleSearchEl) this.enableGoogleSearchEl.checked = !!this.enableGoogleSearch;
             this.handleProviderChange();
             this.updateSendButton();
@@ -1104,8 +1123,8 @@ Safety and privacy:
         this.openrouterApiKey = this.openrouterApiKeyInput.value.trim();
         this.provider = this.providerSelect ? this.providerSelect.value : 'google';
         this.model = this.modelInput.value.trim();
-        const includeUrlCheckbox = document.getElementById('includePageUrlCheckbox');
-        this.includePageUrl = !!(includeUrlCheckbox && includeUrlCheckbox.checked);
+        const includeActiveTabCheckbox = document.getElementById('includeActiveTabCheckbox');
+        this.includeActiveTab = !!(includeActiveTabCheckbox && includeActiveTabCheckbox.checked);
         this.enableGoogleSearch = !!(this.enableGoogleSearchEl && this.enableGoogleSearchEl.checked);
 
         try {
@@ -1114,7 +1133,7 @@ Safety and privacy:
                 openrouterApiKey: this.openrouterApiKey,
                 provider: this.provider,
                 model: this.model,
-                includePageUrl: this.includePageUrl,
+                includeActiveTab: this.includeActiveTab,
                 enableGoogleSearch: this.enableGoogleSearch,
                 profile: this.profile
             });
@@ -1510,8 +1529,20 @@ Safety and privacy:
         // If message contains @mentions, attach those tabs before sending
         await this.attachMentionedTabsIfAny(message);
 
-        // Store files before clearing
+        // Store files before clearing and optionally auto-attach active tab
         const filesToSend = [...this.attachedFiles];
+        if (this.includeActiveTab) {
+            try {
+                const autoFile = await this.fetchActiveTabAsWebpageFile();
+                if (autoFile) {
+                    // Avoid duplicate if a webpage with same URL already attached
+                    const already = filesToSend.some(f => f.isWebpage && f.url === autoFile.url);
+                    if (!already) filesToSend.push(autoFile);
+                }
+            } catch (e) {
+                console.warn('Auto-include active tab failed:', e);
+            }
+        }
         
         // Store last message and files for retry functionality
         this.lastMessage = message;
@@ -1566,6 +1597,35 @@ Safety and privacy:
             this.sendButton.style.display = 'flex';
             this.stopButton.style.display = 'none';
             this.updateSendButton();
+        }
+    }
+
+    async fetchActiveTabAsWebpageFile() {
+        const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+        if (!tabs || !tabs[0]) return null;
+        const tab = tabs[0];
+        try {
+            const file = await this.captureTabAsFile(tab);
+            return file;
+        } catch (e) {
+            // Build a minimal stub with title+URL so the AI has at least a pointer
+            try {
+                const title = tab.title || this.getHostname(tab.url) || 'Tab';
+                const url = tab.url || '';
+                const stub = `Title: ${title}\nURL: ${url}\n\n[Note] Could not capture page text due to site restrictions or permissions.`;
+                return {
+                    name: `${title}.txt`,
+                    type: 'text/plain',
+                    size: stub.length,
+                    dataUrl: `data:text/plain;base64,${btoa(unescape(encodeURIComponent(stub)))}`,
+                    isWebpage: true,
+                    url,
+                    title,
+                    isStub: true
+                };
+            } catch {
+                return null;
+            }
         }
     }
 
@@ -3021,15 +3081,7 @@ Safety and privacy:
         if (message) {
             userParts.push({ text: message });
         }
-        // Optionally include active tab URL as context
-        if (this.includePageUrl) {
-            try {
-                const tabs = await browser.tabs.query({ active: true, currentWindow: true });
-                if (tabs && tabs[0] && tabs[0].url && !tabs[0].url.startsWith('about:') && !tabs[0].url.startsWith('moz-extension://')) {
-                    userParts.push({ text: `[Current Page URL]\n${tabs[0].url}` });
-                }
-            } catch (_) { /* ignore */ }
-        }
+        // (Deprecated path) Previously injected directly into userParts; now handled via filesToSend
         // Inject transcript into context if available and not already included
         if (this.lastTranscript && this.lastTranscript.length > 20) {
             userParts.push({ text: `[Video Transcript]

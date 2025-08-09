@@ -35,6 +35,7 @@
                     <button class="header-btn" id="settingsBtn" title="Settings">
                         <i data-lucide="settings" class="lucide"></i>
                     </button>
+                    <span class="kbd-hint" title="Toggle sidebar (also Ctrl+Shift+Y)" aria-label="Keyboard shortcut F1">F1</span>
                 </div>
             </div>
         </header>
@@ -46,6 +47,7 @@
                         <i data-lucide="settings" class="lucide"></i>
                         Settings
                     </h3>
+                    <span class="settings-hint">Scroll to see all options</span>
                     <button class="close-settings-btn" id="closeSettingsBtn">
                         <i data-lucide="x" class="lucide"></i>
                     </button>
@@ -90,15 +92,15 @@
                 <input type="text" id="modelInput" placeholder="e.g. gemini-2.5-flash" autocomplete="off">
                 </div>
 
-                <!-- Auto-include Page URL setting -->
+                <!-- Auto-include Active Tab Content setting -->
                 <div class="setting-group">
                     <label>
                         <i data-lucide="link" class="lucide"></i>
-                        Auto-include current page URL in prompts
+                        Auto-include active tab when sending.
                     </label>
                     <div class="checkbox-row">
-                        <input type="checkbox" id="includePageUrlCheckbox">
-                        <label for="includePageUrlCheckbox">Include the active tab URL when sending</label>
+                        <input type="checkbox" id="includeActiveTabCheckbox">
+                        <label for="includeActiveTabCheckbox">Automatically include the active tab content</label>
                     </div>
                 </div>
 

@@ -227,6 +227,22 @@ body {
     color: white;
 }
 
+.kbd-hint {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 22px;
+    margin-left: 6px;
+    font-size: 11px;
+    line-height: 1;
+    color: var(--text-primary);
+    background: rgba(255,255,255,0.1);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 6px;
+    backdrop-filter: blur(6px);
+}
+
 .status-indicator {
     font-size: 12px;
     color: rgba(255, 255, 255, 0.8);
@@ -329,15 +345,21 @@ body {
 
 .settings-content {
     padding: var(--spacing-lg);
+    background: linear-gradient(180deg, rgba(255,255,255,0.02), rgba(0,0,0,0) 40%);
 }
 
 .settings-header {
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    justify-content: flex-start;
+    gap: var(--spacing-md);
     margin-bottom: var(--spacing-lg);
     padding-bottom: var(--spacing-md);
     border-bottom: 1px solid var(--border-color);
+    position: sticky;
+    top: 0;
+    background: var(--card-bg);
+    z-index: 1;
 }
 
 .settings-header h3 {
@@ -347,6 +369,13 @@ body {
     color: var(--text-primary);
     font-size: 18px;
     font-weight: 600;
+    flex: 1; /* push hint + close button to the right */
+}
+
+.settings-hint {
+    font-size: 12px;
+    color: var(--text-secondary);
+    opacity: 0.9;
 }
 
 .settings-header i {
@@ -1761,17 +1790,35 @@ body {
 
 /* Responsive Design */
 @media (max-width: 480px) {
+    .header-content { gap: 8px; }
+    .header-buttons { gap: 6px; }
+    .header-btn { width: 32px; height: 32px; }
+    .kbd-hint { display: none; }
+
+    .header-text h1 { font-size: 16px; }
+    .status-indicator { font-size: 11px; }
+
+    .ai-avatar { width: 32px; height: 32px; }
+
     .chat-messages {
-        padding: var(--spacing-md);
+        padding: 10px;
     }
     
     .chat-input-container {
-        padding: var(--spacing-md);
+        padding: 10px;
     }
     
     .message-content {
-        max-width: 95%;
+        max-width: 100%;
+        padding: 12px;
+        font-size: 13.5px;
     }
+
+    .message { gap: 10px; }
+    .message-actions { gap: 6px; }
+    .code-block-container { margin: 10px 0; }
+    .code-block-header { padding: 8px 10px; }
+    .message-content pre { max-height: 300px; }
     
     .history-panel {
         width: 100vw;
@@ -1812,23 +1859,47 @@ body {
 }
 
 @media (max-width: 360px) {
-    .header-content {
-        gap: var(--spacing-sm);
+    .header-text h1 { font-size: 15px; }
+    .header-content { gap: 6px; }
+    .header-buttons { gap: 4px; }
+    .header-btn { width: 28px; height: 28px; }
+    .header-btn i { width: 14px; height: 14px; }
+    .chat-messages { padding: 8px; }
+    .chat-input-container { padding: 8px; }
+    .message-content { padding: 10px; font-size: 13px; }
+    .input-container textarea { font-size: 13px; }
+    .send-button .lucide { width: 16px; height: 16px; }
+    .stop-button .lucide { width: 14px; height: 14px; }
+}
+
+/* Ultra-narrow devices */
+@media (max-width: 300px) {
+    .header-content { flex-wrap: wrap; align-items: flex-start; gap: 6px; }
+    .ai-avatar { width: 28px; height: 28px; }
+    .header-text { min-width: 0; }
+    .header-text h1 { font-size: 14px; }
+    .status-indicator { font-size: 10px; }
+    .header-buttons { width: 100%; justify-content: flex-end; gap: 4px; }
+    .header-btn { width: 26px; height: 26px; }
+    .header-btn i { width: 12px; height: 12px; }
+    .kbd-hint { display: none; }
+
+    .chat-messages { padding: 6px; }
+    .message { gap: 8px; }
+    .message-content { max-width: 100%; padding: 8px; font-size: 12.5px; }
+    .message-actions { gap: 4px; }
+    .message-action-btn { padding: 3px 8px; font-size: 11px; }
+    .code-block-header { padding: 6px 8px; }
+    .message-content pre { max-height: 240px; }
+
+    .chat-input-container { padding: 6px; }
+    .input-actions-left { gap: 4px; }
+    .action-btn.secondary, .action-btn.screenshot, .action-btn.youtube, .action-btn.attach {
+        width: 28px; height: 28px; min-width: 28px; min-height: 28px; max-width: 28px; max-height: 28px;
     }
-    
-    .header-buttons {
-        gap: var(--spacing-xs);
-    }
-    
-    .header-btn {
-        width: 32px;
-        height: 32px;
-    }
-    
-    .header-btn i {
-        width: 16px;
-        height: 16px;
-    }
+    .input-container textarea { font-size: 12.5px; }
+    .send-button { width: 34px; height: 34px; }
+    .stop-button { width: 32px; height: 32px; }
 }
 
 /* Dark scrollbar for webkit browsers */
