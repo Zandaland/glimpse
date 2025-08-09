@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "Glimpse",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Glimpse - Intelligent AI assistant sidebar with YouTube transcript analysis, screenshot capture, tab content capture, and file upload support using Gemini and OpenRouter APIs.",
   "author": "Zandaland",
   "homepage_url": "https://github.com/zandaland/ai-chat-sidebar",
