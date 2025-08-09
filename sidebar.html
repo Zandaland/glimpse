@@ -18,7 +18,7 @@
                 </div>
                 <div class="header-text">
                     <h1>Glimpse</h1>
-                    <span class="status-indicator">Ready</span>
+                    <span class="status-indicator" id="statusIndicator">Ready</span>
                 </div>
                 <div class="header-buttons">
                     <button class="header-btn" id="historyBtn" title="Chat History">
@@ -94,6 +94,20 @@
                 </label>
                 <input type="text" id="modelInput" placeholder="e.g. gemini-2.5-flash" autocomplete="off">
                 </div>
+
+                <!-- Auto-include Page URL setting -->
+                <div class="setting-group">
+                    <label>
+                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                            <i data-lucide="link" style="width:16px;height:16px;"></i>
+                        </svg>
+                        Auto-include current page URL in prompts
+                    </label>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="includePageUrlCheckbox">
+                        <label for="includePageUrlCheckbox">Include the active tab URL when sending</label>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -110,6 +124,37 @@
                         Configure Settings
                     </button>
                 </div>
+                <!-- Quick Actions panel visible only on welcome/new sessions -->
+                <div class="quick-actions" id="welcomeQuickActions">
+                    <div class="quick-action" id="qaSummarize">
+                        <div class="qa-icon"><i data-lucide="file-text" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-text">
+                            <div class="qa-title">Summarize page</div>
+                            <div class="qa-desc">Creates a concise summary of the current page</div>
+                        </div>
+                    </div>
+                    <div class="quick-action" id="qaExtract">
+                        <div class="qa-icon"><i data-lucide="list-checks" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-text">
+                            <div class="qa-title">Extract action items</div>
+                            <div class="qa-desc">Finds tasks with owners and deadlines</div>
+                        </div>
+                    </div>
+                    <div class="quick-action" id="qaExplain">
+                        <div class="qa-icon"><i data-lucide="image" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-text">
+                            <div class="qa-title">Explain a screenshot</div>
+                            <div class="qa-desc">Describes what’s in an attached image</div>
+                        </div>
+                    </div>
+                    <div class="quick-action" id="qaSelection">
+                        <div class="qa-icon"><i data-lucide="mouse-pointer" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-text">
+                            <div class="qa-title">Use selected text</div>
+                            <div class="qa-desc">Captures selected text from the page</div>
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
 
@@ -118,7 +163,7 @@
             <div class="chat-input-wrapper">
                 <input type="file" id="fileInput" accept="image/*,video/*,.txt,.md,.pdf,.doc,.docx" multiple style="display: none;">
                 
-                <div class="input-actions-left">
+                <div class="input-actions-left" id="toolbarActions">
                     <button id="captureTabButton" class="action-btn secondary" title="Capture current tab content (text)">
                         <i data-lucide="file-text" style="width:16px;height:16px;"></i>
                     </button>
@@ -131,6 +176,7 @@
                     <button id="attachButton" class="action-btn attach" title="Attach files">
                         <i data-lucide="paperclip" style="width:16px;height:16px;"></i>
                     </button>
+                    <!-- Quick Actions moved to welcome only; toolbar shows only capture/attach -->
                 </div>
                 
                 <div class="input-container">

@@ -22,3 +22,6 @@ Thumbs.db
 
 # Package managers
 node_modules/
+ 
+# Local ops docs
+SERVER_MAINTENANCE.md

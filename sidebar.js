@@ -13,6 +13,36 @@ function getWelcomeMessageHTML() {
                     Configure Settings
                 </button>
             </div>
+            <div class="quick-actions" id="welcomeQuickActions">
+                <div class="quick-action" id="qaSummarize">
+                    <div class="qa-icon"><i data-lucide="file-text" style="width:18px;height:18px;"></i></div>
+                    <div class="qa-text">
+                        <div class="qa-title">Summarize page</div>
+                        <div class="qa-desc">Creates a concise summary of the current page</div>
+                    </div>
+                </div>
+                <div class="quick-action" id="qaExtract">
+                    <div class="qa-icon"><i data-lucide="list-checks" style="width:18px;height:18px;"></i></div>
+                    <div class="qa-text">
+                        <div class="qa-title">Extract action items</div>
+                        <div class="qa-desc">Finds tasks with owners and deadlines</div>
+                    </div>
+                </div>
+                <div class="quick-action" id="qaExplain">
+                    <div class="qa-icon"><i data-lucide="image" style="width:18px;height:18px;"></i></div>
+                    <div class="qa-text">
+                        <div class="qa-title">Explain a screenshot</div>
+                        <div class="qa-desc">Describes what’s in an attached image</div>
+                    </div>
+                </div>
+                <div class="quick-action" id="qaSelection">
+                    <div class="qa-icon"><i data-lucide="mouse-pointer" style="width:18px;height:18px;"></i></div>
+                    <div class="qa-text">
+                        <div class="qa-title">Use selected text</div>
+                        <div class="qa-desc">Captures selected text from the page</div>
+                    </div>
+                </div>
+            </div>
         </div>
     `;
 }
@@ -58,25 +88,96 @@ function fallbackIcons() {
 
 class AIChat {
     async fetchTranscriptFromServer(videoId) {
-        try {
-            const response = await fetch(`http://35.222.85.252:10000/transcript?video_id=${videoId}`);
-            const data = await response.json();
-            if (data.transcript) {
-                // Store transcript for AI context, but do not show in message input
-                this.lastTranscript = data.transcript.join(' ');
-                this.showSuccessMessage('Transcript fetched from server!');
-                return true; // Success
-            } else {
-                this.lastTranscript = '';
-                this.showErrorMessage(data.error || 'No transcript found.');
-                return false; // Failed
-            }
-        } catch (err) {
-            this.lastTranscript = '';
-            this.showErrorMessage('Server unavailable. Trying local extraction...');
-            console.error('Failed to fetch transcript:', err);
-            return false; // Failed
+        const CACHE_KEY = 'transcriptCache';
+        const CACHE_TTL_MS = 6 * 60 * 60 * 1000; // 6 hours
+        const REQUEST_TIMEOUT_MS = 60000; // 60s (increased to handle HF cold starts)
+        const MAX_ATTEMPTS = 2;
+
+        // Check cache first
+        const cacheResult = await browser.storage.local.get([CACHE_KEY]);
+        const transcriptCache = cacheResult[CACHE_KEY] || {};
+        const cached = transcriptCache[videoId];
+        const now = Date.now();
+        if (cached && typeof cached.transcript === 'string' && typeof cached.ts === 'number' && (now - cached.ts) < CACHE_TTL_MS) {
+            this.lastTranscript = cached.transcript;
+            this.showSuccessMessage('Transcript loaded from cache');
+            return true;
         }
+
+        const url = `http://141.147.92.36:10000/transcript?video_id=${videoId}`;
+        let attempt = 0;
+        while (attempt < MAX_ATTEMPTS) {
+            attempt += 1;
+            try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), REQUEST_TIMEOUT_MS);
+                const response = await fetch(url, {
+                    method: 'GET',
+                    signal: controller.signal,
+                    cache: 'no-store',
+                    credentials: 'omit',
+                    headers: { 'Accept': 'application/json' },
+                });
+                clearTimeout(timeoutId);
+
+                if (!response.ok) {
+                    // For server errors, try once more
+                    if (attempt < MAX_ATTEMPTS && (response.status >= 500 || response.status === 408 || response.status === 429)) {
+                        await new Promise(r => setTimeout(r, 1500));
+                        continue;
+                    }
+                    this.lastTranscript = '';
+                    this.showErrorMessage(`Transcript error: ${response.status}`);
+                    return false;
+                }
+
+                let data;
+                try {
+                    data = await response.json();
+                } catch (e) {
+                    // Invalid JSON
+                    if (attempt < MAX_ATTEMPTS) {
+                        await new Promise(r => setTimeout(r, 1000));
+                        continue;
+                    }
+                    this.lastTranscript = '';
+                    this.showErrorMessage('Transcript parsing failed.');
+                    return false;
+                }
+
+                // Accept array or string transcripts
+                let transcriptText = '';
+                if (data && Array.isArray(data.transcript)) {
+                    transcriptText = data.transcript.join(' ');
+                } else if (data && typeof data.transcript === 'string') {
+                    transcriptText = data.transcript;
+                }
+
+                if (transcriptText && transcriptText.length > 0) {
+                    this.lastTranscript = transcriptText;
+                    transcriptCache[videoId] = { transcript: this.lastTranscript, ts: now };
+                    await browser.storage.local.set({ [CACHE_KEY]: transcriptCache });
+                    this.showSuccessMessage('Transcript fetched from server!');
+                    return true;
+                } else {
+                    this.lastTranscript = '';
+                    this.showErrorMessage((data && data.error) || 'No transcript found.');
+                    return false;
+                }
+            } catch (err) {
+                const isAbort = (err && (err.name === 'AbortError' || err.message?.includes('aborted')));
+                if (attempt < MAX_ATTEMPTS) {
+                    await new Promise(r => setTimeout(r, 1000));
+                    continue;
+                }
+                this.lastTranscript = '';
+                console.error('Transcript fetch failed:', err);
+                this.showErrorMessage(isAbort ? 'Transcript request timed out.' : 'Transcript service unavailable.');
+                return false;
+            }
+        }
+        this.lastTranscript = '';
+        return false;
     }
     constructor() {
         this.apiKey = '';
@@ -113,6 +214,24 @@ class AIChat {
                 this.toggleSettings();
             });
         }
+        // Welcome quick actions
+        const qaSummarize = document.getElementById('qaSummarize');
+        const qaExtract = document.getElementById('qaExtract');
+        const qaExplain = document.getElementById('qaExplain');
+        const qaSelection = document.getElementById('qaSelection');
+        if (qaSummarize) qaSummarize.addEventListener('click', async () => {
+            this.prefillPrompt('Summarize the key points of the current page. If attachments are present, use them as context.');
+            await this.captureCurrentTab();
+        });
+        if (qaExtract) qaExtract.addEventListener('click', async () => {
+            this.prefillPrompt('Extract action items with owners and deadlines from the provided content.');
+            await this.captureCurrentTab();
+        });
+        if (qaExplain) qaExplain.addEventListener('click', async () => {
+            this.prefillPrompt('Explain what is shown in the attached screenshot or image in clear, concise language.');
+            await this.captureScreenshot();
+        });
+        if (qaSelection) qaSelection.addEventListener('click', () => this.captureSelectionFromPage());
     }
 
     // Simple markdown parser
@@ -150,10 +269,10 @@ class AIChat {
         // Inline code (escape content)
         html = html.replace(/`([^`]+)`/gim, (m, inline) => `<code>${escapeHtml(inline)}</code>`);
 
-        // Bold / Italic
+        // Bold / Italic (avoid turning list markers into italics)
         html = html
             .replace(/\*\*(.*?)\*\*/gim, '<strong>$1</strong>')
-            .replace(/\*(.*?)\*/gim, '<em>$1</em>');
+            .replace(/(^|[^\*])\*(?!\*)([^\n]+?)\*(?!\*)/gim, '$1<em>$2</em>');
 
         // Links
         html = html.replace(/\[([^\]]+)\]\(([^)]+)\)/gim, (m, textPart, href) => {
@@ -161,13 +280,73 @@ class AIChat {
             return `<a href="${safeHref}" target="_blank" rel="noopener noreferrer">${textPart}</a>`;
         });
 
-        // Lists (very simple)
+        // Lists (very simple). Avoid interfering with table syntax
         html = html
             .replace(/^\* (.*$)/gim, '<li>$1</li>')
             .replace(/(<li>[\s\S]*?<\/li>)/gim, '<ul>$1</ul>');
 
-        // Line breaks
-        html = html.replace(/\n/gim, '<br>');
+        // Strict GitHub-style table detection to avoid false positives
+        const convertMarkdownTables = (s) => {
+            const lines = s.split('\n');
+            const out = [];
+            let i = 0;
+            const isPipeRow = (line) => /^\s*\|(.+)\|\s*$/.test(line);
+            const isHeader = (line) => isPipeRow(line) && /\|/.test(line);
+            const isSeparator = (line) => {
+                if (!/^\s*\|([ :\-|]+)\|\s*$/.test(line)) return false;
+                const cells = line.replace(/^\s*\||\|\s*$/g, '').split('|').map(c => c.trim());
+                return cells.length > 0 && cells.every(cell => /^:?-{3,}:?$/.test(cell));
+            };
+            const toCells = (line) => line.replace(/^\s*\||\|\s*$/g, '').split('|').map(c => c.trim());
+            while (i < lines.length) {
+                if (i + 1 < lines.length && isHeader(lines[i]) && isSeparator(lines[i + 1])) {
+                    const headerCells = toCells(lines[i]);
+                    const sepCells = toCells(lines[i + 1]);
+                    if (sepCells.length === headerCells.length) {
+                        const rows = [];
+                        let j = i + 2;
+                        while (j < lines.length && isPipeRow(lines[j])) {
+                            const rowCells = toCells(lines[j]);
+                            if (rowCells.length !== headerCells.length) break;
+                            rows.push(rowCells);
+                            j++;
+                        }
+                        if (rows.length > 0) {
+                            let tableHtml = '<div class="table-container"><table><thead><tr>' + headerCells.map(c => `<th>${c}</th>`).join('') + '</tr></thead><tbody>' + rows.map(r => '<tr>' + r.map(c => `<td>${c}</td>`).join('') + '</tr>').join('') + '</tbody></table></div>'; 
+                            out.push(tableHtml);
+                            i = j;
+                            continue;
+                        }
+                    }
+                }
+                out.push(lines[i]);
+                i++;
+            }
+            return out.join('\n');
+        };
+        html = convertMarkdownTables(html);
+
+        // Tables (GitHub-style: header|header\n---|---\nrow|row)
+        html = html.replace(/(^|\n)\s*\|?(\s*[^\n|]+\s*\|)+\s*(\n\s*\|?\s*[-:]+\s*(\|\s*[-:]+\s*)+\|?\s*)\n([\s\S]*?)(?=\n\n|$)/gim, (match) => {
+            const lines = match.trim().split(/\n/);
+            if (lines.length < 2) return match; // not a table
+            const header = lines[0].trim();
+            const separator = lines[1].trim();
+            if (!/\|/.test(header) || !/-{3,}/.test(separator)) return match;
+            const rows = lines.slice(2);
+            const toCells = (line) => line.replace(/^\|/, '').replace(/\|$/, '').split(/\|/).map(c => c.trim());
+            const headCells = toCells(header);
+            const bodyRows = rows.filter(r => /\|/.test(r)).map(r => toCells(r));
+            let tableHtml = '<div class="table-container"><table><thead><tr>';
+            tableHtml += headCells.map(c => `<th>${c}</th>`).join('');
+            tableHtml += '</tr></thead><tbody>';
+            tableHtml += bodyRows.map(r => `<tr>${r.map(c => `<td>${c}</td>`).join('')}</tr>`).join('');
+            tableHtml += '</tbody></table></div>';
+            return tableHtml;
+        });
+
+        // Line breaks (after table handling). Convert plain line breaks to <br>, but not inside HTML tags
+        html = html.replace(/\n(?![^<]*>)/g, '<br>');
         // Restore protected code newlines
         html = html.replace(/__GLIMPSE_CODE_NL__/g, '\n');
 
@@ -190,6 +369,8 @@ class AIChat {
         // Remove direct reference, use event delegation for toggle-password
         this.modelInput = document.getElementById('modelInput');
         this.attachButton = document.getElementById('attachButton');
+        // Quick actions now live only in welcome panel; toolbar quick action refs removed
+        this.statusIndicator = document.getElementById('statusIndicator');
         this.captureTabButton = document.getElementById('captureTabButton');
         this.screenshotButton = document.getElementById('screenshotButton');
         this.youtubeAnalysisButton = document.getElementById('youtubeAnalysisButton');
@@ -314,6 +495,8 @@ class AIChat {
             this.analyzeYouTubeVideo();
         });
 
+        // No toolbar quick actions; handled via welcome panel only
+
         if (this.captureVideoButton) {
             this.captureVideoButton.addEventListener('click', (e) => {
                 e.stopPropagation();
@@ -325,6 +508,29 @@ class AIChat {
             e.stopPropagation();
             this.handleFileSelect(e.target.files);
         });
+
+        // Drag & drop attachments on the input wrapper
+        const inputWrapper = document.querySelector('.chat-input-wrapper');
+        if (inputWrapper) {
+            const prevent = (ev) => { ev.preventDefault(); ev.stopPropagation(); };
+            ['dragenter', 'dragover', 'dragleave', 'drop'].forEach(evt => {
+                inputWrapper.addEventListener(evt, prevent);
+            });
+            ['dragenter', 'dragover'].forEach(evt => {
+                inputWrapper.addEventListener(evt, () => inputWrapper.classList.add('drag-over'));
+            });
+            ['dragleave', 'drop'].forEach(evt => {
+                inputWrapper.addEventListener(evt, () => inputWrapper.classList.remove('drag-over'));
+            });
+            inputWrapper.addEventListener('drop', (e) => {
+                const dt = e.dataTransfer;
+                if (!dt) return;
+                const files = dt.files;
+                if (files && files.length > 0) {
+                    this.handleFileSelect(files);
+                }
+            });
+        }
 
         // Add paste event listener for images
         this.messageInput.addEventListener('paste', (e) => {
@@ -350,6 +556,28 @@ class AIChat {
             this.deleteAllHistoryBtn.addEventListener('click', (e) => {
                 e.stopPropagation();
                 this.deleteAllHistory();
+            });
+        }
+
+        // History enhancements: search and pin controls
+        if (this.historyPanel) {
+            let searchBar = this.historyPanel.querySelector('#historySearchInput');
+            if (!searchBar) {
+                const header = this.historyPanel.querySelector('.history-header');
+                if (header) {
+                    const input = document.createElement('input');
+                    input.type = 'text';
+                    input.id = 'historySearchInput';
+                    input.className = 'history-search';
+                    input.placeholder = 'Search history...';
+                    header.insertBefore(input, header.querySelector('.close-btn'));
+                }
+            }
+            this.historyPanel.addEventListener('input', (e) => {
+                if (e.target && e.target.id === 'historySearchInput') {
+                    const query = e.target.value.toLowerCase();
+                    this.filterHistory(query);
+                }
             });
         }
 
@@ -403,6 +631,61 @@ class AIChat {
             console.log('🛡️ Non-interactive element, stopping propagation');
             e.stopPropagation();
         });
+    }
+
+    prefillPrompt(text) {
+        if (!text) return;
+        const current = this.messageInput.value.trim();
+        const spacer = current ? '\n' : '';
+        this.messageInput.value = current + spacer + text;
+        this.updateSendButton();
+        this.autoResizeTextarea();
+        this.messageInput.focus();
+    }
+
+    async captureSelectionFromPage() {
+        try {
+            const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+            if (!tabs || tabs.length === 0) throw new Error('No active tab');
+            const activeTab = tabs[0];
+            const results = await browser.tabs.executeScript(activeTab.id, {
+                code: `
+                    (function(){
+                        var sel = window.getSelection();
+                        var text = sel ? sel.toString() : '';
+                        if (!text) {
+                            var el = document.activeElement;
+                            if (el && (el.tagName==='TEXTAREA' || (el.tagName==='INPUT' && el.type==='text'))) {
+                                text = el.value.substring(el.selectionStart||0, el.selectionEnd||0);
+                            }
+                        }
+                        return text || '';
+                    })();
+                `
+            });
+            const selected = (results && results[0]) ? String(results[0]).trim() : '';
+            if (!selected) {
+                this.showErrorMessage('No text selected');
+                return;
+            }
+            // Attach as a small text file for consistent handling
+            const data = `data:text/plain;base64,${btoa(unescape(encodeURIComponent(selected)))}`;
+            const file = {
+                name: 'Selection.txt',
+                type: 'text/plain',
+                size: selected.length,
+                dataUrl: data,
+                isSelection: true,
+                title: 'Selection'
+            };
+            this.attachedFiles.push(file);
+            this.updateFilePreview();
+            this.updateSendButton();
+            this.showSuccessMessage('Selected text attached');
+        } catch (e) {
+            console.error('Selection capture failed:', e);
+            this.showErrorMessage('Failed to capture selection');
+        }
     }
 
     // Delete all chat history
@@ -590,15 +873,18 @@ class AIChat {
 
     async loadSettings() {
         try {
-            const result = await browser.storage.local.get(['apiKey', 'openrouterApiKey', 'provider', 'model']);
+            const result = await browser.storage.local.get(['apiKey', 'openrouterApiKey', 'provider', 'model', 'includePageUrl']);
             this.apiKey = result.apiKey || '';
             this.openrouterApiKey = result.openrouterApiKey || '';
             this.provider = result.provider || 'google';
             this.model = result.model || 'gemini-2.5-flash';
+            this.includePageUrl = !!result.includePageUrl;
             this.apiKeyInput.value = this.apiKey;
             this.openrouterApiKeyInput.value = this.openrouterApiKey;
             this.modelInput.value = this.model;
             if (this.providerSelect) this.providerSelect.value = this.provider;
+            const includeUrlCheckbox = document.getElementById('includePageUrlCheckbox');
+            if (includeUrlCheckbox) includeUrlCheckbox.checked = this.includePageUrl;
             this.handleProviderChange();
             this.updateSendButton();
         } catch (error) {
@@ -611,13 +897,16 @@ class AIChat {
         this.openrouterApiKey = this.openrouterApiKeyInput.value.trim();
         this.provider = this.providerSelect ? this.providerSelect.value : 'google';
         this.model = this.modelInput.value.trim();
+        const includeUrlCheckbox = document.getElementById('includePageUrlCheckbox');
+        this.includePageUrl = !!(includeUrlCheckbox && includeUrlCheckbox.checked);
 
         try {
             await browser.storage.local.set({
                 apiKey: this.apiKey,
                 openrouterApiKey: this.openrouterApiKey,
                 provider: this.provider,
-                model: this.model
+                model: this.model,
+                includePageUrl: this.includePageUrl
             });
             // Force close the settings panel
             this.settingsPanel.classList.remove('open');
@@ -924,6 +1213,36 @@ class AIChat {
             }
             messageContent.appendChild(textDiv);
         }
+
+        // Message utilities: copy message and retry (for AI) buttons
+        const actionsBar = document.createElement('div');
+        actionsBar.className = 'message-actions';
+        const copyBtn = document.createElement('button');
+        copyBtn.className = 'history-action-btn';
+        copyBtn.textContent = 'Copy';
+        copyBtn.addEventListener('click', () => {
+            const text = content || '';
+            try {
+                navigator.clipboard.writeText(text);
+            } catch (_){
+                const temp = document.createElement('textarea');
+                temp.value = text;
+                document.body.appendChild(temp);
+                temp.select();
+                document.execCommand('copy');
+                document.body.removeChild(temp);
+            }
+            this.showSuccessMessage('Message copied');
+        });
+        actionsBar.appendChild(copyBtn);
+        if (sender === 'ai' && !isStreaming) {
+            const retryBtn = document.createElement('button');
+            retryBtn.className = 'history-action-btn';
+            retryBtn.textContent = 'Retry';
+            retryBtn.addEventListener('click', () => this.retryLastMessage());
+            actionsBar.appendChild(retryBtn);
+        }
+        messageContent.appendChild(actionsBar);
 
         messageDiv.appendChild(avatar);
         messageDiv.appendChild(messageContent);
@@ -1395,12 +1714,12 @@ class AIChat {
             const videoIdMatch = activeTab.url.match(/[?&]v=([^&]+)/) || activeTab.url.match(/youtu\.be\/([^?&]+)/);
             const videoId = videoIdMatch ? videoIdMatch[1] : null;
             if (videoId) {
-                const serverSuccess = await this.fetchTranscriptFromServer(videoId);
-                if (!serverSuccess) {
-                    // Fall back to local extraction
-                    await this.captureYouTubeVideoAnalysis(activeTab);
-                }
+                // Always use backend transcript; do not attempt local extraction
+                await this.fetchTranscriptFromServer(videoId);
+                // Proceed to capture analysis (frame + metadata) regardless of transcript
+                await this.captureYouTubeVideoAnalysis(activeTab);
             } else {
+                // If no videoId, still capture frame + metadata
                 await this.captureYouTubeVideoAnalysis(activeTab);
             }
 
@@ -1558,6 +1877,35 @@ class AIChat {
                                         }
                                     }
                                 }
+                                // Try opening the transcript panel UI and scraping segments
+                                if (!transcript) {
+                                    try {
+                                        // Open the 'More actions' menu
+                                        var moreBtn = document.querySelector('button[aria-label*="More actions"], tp-yt-paper-icon-button[aria-label*="More actions"]');
+                                        if (moreBtn) {
+                                            moreBtn.click();
+                                            await new Promise(function(r){ setTimeout(r, 600); });
+                                            // Find 'Show transcript' menu item
+                                            var menuItems = Array.from(document.querySelectorAll('ytd-menu-service-item-renderer tp-yt-paper-item, ytd-menu-service-item-renderer yt-formatted-string'));
+                                            var showItem = menuItems.find(function(el){ return /Show transcript/i.test((el.textContent || '')); });
+                                            if (showItem) {
+                                                showItem.click();
+                                                await new Promise(function(r){ setTimeout(r, 900); });
+                                            }
+                                        }
+                                        // Locate transcript panel
+                                        var transcriptPanel = document.querySelector('ytd-engagement-panel-section-list-renderer[visible] ytd-transcript-renderer, ytd-transcript-renderer');
+                                        if (transcriptPanel) {
+                                            var segEls = transcriptPanel.querySelectorAll('ytd-transcript-segment-renderer #segment-text, ytd-transcript-segment-renderer yt-formatted-string, .segment-text');
+                                            var parts = Array.from(segEls).map(function(el){ return (el.textContent || '').trim(); }).filter(function(t){ return t.length > 0; });
+                                            if (parts.length > 0) {
+                                                transcript = parts.join(' ');
+                                            }
+                                        }
+                                    } catch (e) {
+                                        // ignore scraping errors
+                                    }
+                                }
                                 // Try new YouTube caption selectors (2025)
                                 if (!transcript) {
                                     var captionSelectors = [
@@ -1664,11 +2012,9 @@ class AIChat {
             throw new Error('YouTube analysis failed: ' + videoData.error);
         }
 
-        // Debug: Show transcript in chat for troubleshooting
+        // Debug: Only show a concise success message; local extraction removed
         if (videoData.transcript && videoData.transcript.length > 0) {
-            this.showSuccessMessage('[Debug] Extracted transcript (first 300 chars):\n' + videoData.transcript.substring(0, 300));
-        } else {
-            this.showErrorMessage('[Debug] No transcript was extracted for this video.');
+            this.showSuccessMessage('Transcript detected on page');
         }
 
         // Create comprehensive video analysis object
@@ -1704,13 +2050,7 @@ class AIChat {
         this.updateFilePreview();
         this.updateSendButton();
 
-        // If transcript is found, append it to the message input so the AI will see it
-        if (videoData.transcript && videoData.transcript.length > 0) {
-            // Only append if not already present
-            if (!this.messageInput.value.includes(videoData.transcript.substring(0, 20))) {
-                this.messageInput.value += `\n\n[YouTube Transcript]\n` + videoData.transcript;
-            }
-        }
+        // Do not append transcript into the input; it will be injected into the model context silently on send
 
         // Show success message with analysis details
         let successMessage = `📹 Captured YouTube video analysis: ${videoData.title}`;
@@ -1907,6 +2247,15 @@ class AIChat {
         const userParts = [];
         if (message) {
             userParts.push({ text: message });
+        }
+        // Optionally include active tab URL as context
+        if (this.includePageUrl) {
+            try {
+                const tabs = await browser.tabs.query({ active: true, currentWindow: true });
+                if (tabs && tabs[0] && tabs[0].url && !tabs[0].url.startsWith('about:') && !tabs[0].url.startsWith('moz-extension://')) {
+                    userParts.push({ text: `[Current Page URL]\n${tabs[0].url}` });
+                }
+            } catch (_) { /* ignore */ }
         }
         // Inject transcript into context if available and not already included
         if (this.lastTranscript && this.lastTranscript.length > 20) {
@@ -2196,6 +2545,8 @@ ${this.lastTranscript}` });
         try {
             const result = await browser.storage.local.get(['chatHistory']);
             const history = result.chatHistory || [];
+            // Sort: pinned first, then by recency
+            history.sort((a, b) => (b.pinned === true) - (a.pinned === true) || (b.timestamp - a.timestamp));
             
             if (history.length === 0) {
                 this.historyContent.innerHTML = '<div class="no-history">No chat history yet</div>';
@@ -2209,6 +2560,7 @@ ${this.lastTranscript}` });
                     <div class="history-item-preview">${this.escapeHtml(session.preview)}</div>
                     <div class="history-item-actions">
                         <button class="history-action-btn load" data-session-id="${session.id}">Load</button>
+                        <button class="history-action-btn pin" data-session-id="${session.id}">${session.pinned ? 'Unpin' : 'Pin'}</button>
                         <button class="history-action-btn delete" data-session-id="${session.id}">Delete</button>
                     </div>
                 </div>
@@ -2229,9 +2581,76 @@ ${this.lastTranscript}` });
                 });
             });
 
+            this.historyContent.querySelectorAll('.history-action-btn.pin').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.togglePinSession(btn.dataset.sessionId);
+                });
+            });
+
         } catch (error) {
             console.error('Error loading history:', error);
             this.historyContent.innerHTML = '<div class="no-history">Error loading history</div>';
+        }
+    }
+
+    async togglePinSession(sessionId) {
+        try {
+            const result = await browser.storage.local.get(['chatHistory']);
+            const history = result.chatHistory || [];
+            const session = history.find(s => s.id === sessionId);
+            if (!session) return;
+            session.pinned = !session.pinned;
+            await browser.storage.local.set({ chatHistory: history });
+            this.loadHistory();
+        } catch (error) {
+            console.error('Error pinning session:', error);
+        }
+    }
+
+    async filterHistory(query) {
+        try {
+            const result = await browser.storage.local.get(['chatHistory']);
+            const history = (result.chatHistory || []).filter(s =>
+                (s.title && s.title.toLowerCase().includes(query)) ||
+                (s.preview && s.preview.toLowerCase().includes(query))
+            );
+            if (history.length === 0) {
+                this.historyContent.innerHTML = '<div class="no-history">No results</div>';
+                return;
+            }
+            this.historyContent.innerHTML = history.map(session => `
+                <div class="history-item" data-session-id="${session.id}">
+                    <div class="history-item-title">${this.escapeHtml(session.title)}</div>
+                    <div class="history-item-date">${this.formatDate(session.timestamp)}</div>
+                    <div class="history-item-preview">${this.escapeHtml(session.preview)}</div>
+                    <div class="history-item-actions">
+                        <button class="history-action-btn load" data-session-id="${session.id}">Load</button>
+                        <button class="history-action-btn pin" data-session-id="${session.id}">${session.pinned ? 'Unpin' : 'Pin'}</button>
+                        <button class="history-action-btn delete" data-session-id="${session.id}">Delete</button>
+                    </div>
+                </div>
+            `).join('');
+            this.historyContent.querySelectorAll('.history-action-btn.load').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.loadSession(btn.dataset.sessionId);
+                });
+            });
+            this.historyContent.querySelectorAll('.history-action-btn.delete').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.deleteSession(btn.dataset.sessionId);
+                });
+            });
+            this.historyContent.querySelectorAll('.history-action-btn.pin').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    e.stopPropagation();
+                    this.togglePinSession(btn.dataset.sessionId);
+                });
+            });
+        } catch (error) {
+            console.error('Error filtering history:', error);
         }
     }
 
