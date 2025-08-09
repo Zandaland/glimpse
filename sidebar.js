@@ -568,6 +568,108 @@ Safety and privacy:
             });
         }
 
+        // Help modal
+        const helpBtn = document.getElementById('helpBtn');
+        const helpModal = document.getElementById('helpModal');
+        const helpCloseBtn = document.getElementById('helpCloseBtn');
+        const helpContent = document.getElementById('helpContent');
+        const helpStepsContainer = document.getElementById('helpSteps');
+        const helpPrevBtn = document.getElementById('helpPrevBtn');
+        const helpNextBtn = document.getElementById('helpNextBtn');
+        const helpSkipBtn = document.getElementById('helpSkipBtn');
+        const helpDoneBtn = document.getElementById('helpDoneBtn');
+        const helpProgress = document.getElementById('helpProgress');
+        let helpCurrentStep = 1;
+        const helpTotalSteps = helpStepsContainer ? helpStepsContainer.querySelectorAll('.help-step').length : 0;
+        const openHelp = () => {
+            if (!helpModal) return;
+            helpModal.style.display = 'flex';
+            helpModal.setAttribute('aria-hidden', 'false');
+            helpCurrentStep = 1;
+            updateHelpUI();
+            renderLucideIcons();
+        };
+        const closeHelp = () => {
+            if (!helpModal) return;
+            helpModal.style.display = 'none';
+            helpModal.setAttribute('aria-hidden', 'true');
+        };
+        if (helpBtn) helpBtn.addEventListener('click', (e) => { e.stopPropagation(); openHelp(); });
+        if (helpCloseBtn) helpCloseBtn.addEventListener('click', (e) => { e.stopPropagation(); closeHelp(); });
+        if (helpModal) helpModal.addEventListener('click', (e) => {
+            if (e.target === helpModal) closeHelp();
+        });
+        const updateHelpUI = () => {
+            if (!helpStepsContainer) return;
+            helpStepsContainer.querySelectorAll('.help-step').forEach(step => {
+                const idx = Number(step.getAttribute('data-step'));
+                step.classList.toggle('active', idx === helpCurrentStep);
+            });
+            if (helpPrevBtn) helpPrevBtn.disabled = helpCurrentStep === 1;
+            if (helpNextBtn) helpNextBtn.style.display = (helpCurrentStep < helpTotalSteps) ? 'inline-flex' : 'none';
+            if (helpDoneBtn) helpDoneBtn.style.display = (helpCurrentStep === helpTotalSteps) ? 'inline-flex' : 'none';
+            if (helpProgress) helpProgress.style.setProperty('--progress', `${Math.round((helpCurrentStep-1)/(helpTotalSteps-1)*100)}%`);
+            if (helpProgress) helpProgress.style.position = 'relative';
+            if (helpProgress) helpProgress.querySelector?.(':scope > *');
+            if (helpProgress) helpProgress.style.setProperty('--width', `${Math.round((helpCurrentStep-1)/(helpTotalSteps-1)*100)}%`);
+            if (helpProgress) helpProgress.innerHTML = `<div style="width:${Math.round((helpCurrentStep-1)/(helpTotalSteps-1)*100)}%;height:100%;background:#ff6b6b;"></div>`;
+        };
+        if (helpPrevBtn) helpPrevBtn.addEventListener('click', (e) => { e.stopPropagation(); helpCurrentStep = Math.max(1, helpCurrentStep - 1); updateHelpUI(); });
+        if (helpNextBtn) helpNextBtn.addEventListener('click', (e) => { e.stopPropagation(); helpCurrentStep = Math.min(helpTotalSteps, helpCurrentStep + 1); updateHelpUI(); });
+        if (helpSkipBtn) helpSkipBtn.addEventListener('click', (e) => { e.stopPropagation(); closeHelp(); });
+        if (helpDoneBtn) helpDoneBtn.addEventListener('click', (e) => { e.stopPropagation(); closeHelp(); });
+        if (helpContent) helpContent.addEventListener('click', (e) => {
+            const btn = e.target.closest('.help-action');
+            if (!btn) return;
+            const action = btn.getAttribute('data-action');
+            switch (action) {
+                case 'openSettings':
+                    this.toggleSettings(true);
+                    break;
+                case 'captureTab':
+                    this.captureCurrentTab();
+                    break;
+                case 'screenshot':
+                    this.captureScreenshot();
+                    break;
+                case 'analyzeYouTube':
+                    this.analyzeYouTubeVideo();
+                    break;
+                case 'attachFiles':
+                    this.fileInput?.click();
+                    break;
+                case 'openProfile':
+                    this.toggleSettings(true);
+                    setTimeout(() => {
+                        const el = document.getElementById('personalizationGroup');
+                        el?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }, 50);
+                    break;
+                case 'prefillAtMentions':
+                    this.prefillPrompt('Type @ to attach an open tab, e.g., @amazon or @github');
+                    break;
+                case 'toggleGrounding':
+                    this.toggleSettings(true);
+                    setTimeout(() => {
+                        const cb = document.getElementById('enableGoogleSearch');
+                        if (cb) {
+                            cb.checked = !cb.checked;
+                            this.enableGoogleSearch = cb.checked;
+                            this.saveSettings();
+                        }
+                    }, 50);
+                    break;
+                case 'startNewSession':
+                    this.startNewSession();
+                    break;
+                case 'openHistory':
+                    this.toggleHistory();
+                    break;
+                default:
+                    break;
+            }
+        });
+
         this.attachButton.addEventListener('click', (e) => {
             e.stopPropagation();
             this.fileInput.click();

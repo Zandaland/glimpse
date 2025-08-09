@@ -23,6 +23,9 @@
                     <span class="status-indicator" id="statusIndicator">Ready</span>
                 </div>
                 <div class="header-buttons">
+                    <button class="header-btn" id="helpBtn" title="Help & Tutorial">
+                        <i data-lucide="help-circle" class="lucide"></i>
+                    </button>
                     <button class="header-btn" id="historyBtn" title="Chat History">
                         <i data-lucide="history" class="lucide"></i>
                     </button>
@@ -262,6 +265,127 @@
                     <i data-lucide="message-square" class="lucide"></i>
                     <p>No chat history yet</p>
                     <span>Start a conversation to see your history here</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Help / Tutorial Modal (step-by-step) -->
+        <div class="modal-overlay" id="helpModal" aria-hidden="true" role="dialog" aria-modal="true" style="display:none;">
+            <div class="modal" role="document">
+                <div class="modal-header">
+                    <div class="modal-title">
+                        <i data-lucide="help-circle" class="lucide"></i>
+                        <h3>Using Glimpse</h3>
+                    </div>
+                    <button class="modal-close" id="helpCloseBtn" aria-label="Close">
+                        <i data-lucide="x" class="lucide"></i>
+                    </button>
+                </div>
+                <div class="modal-body" id="helpContent">
+                    <div id="helpSteps">
+                        <div class="help-step" data-step="1">
+                            <div class="help-section">
+                                <h4>1/6 · Getting started</h4>
+                                <ul>
+                                    <li>Choose provider and enter API key in Settings.</li>
+                                    <li>Pick a model (e.g., <code>gemini-2.5-flash</code>).</li>
+                                    <li>Type your question or attach context, then Send.</li>
+                                </ul>
+                                <div class="help-actions">
+                                    <button class="primary-btn help-action" data-action="openSettings">
+                                        <i data-lucide="settings" class="lucide"></i> Open Settings
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="help-step" data-step="2">
+                            <div class="help-section">
+                                <h4>2/6 · Quick capture</h4>
+                                <div class="help-grid">
+                                    <button class="help-btn help-action" data-action="captureTab" title="Capture current tab text">
+                                        <i data-lucide="file-text" class="lucide"></i> Capture Page
+                                    </button>
+                                    <button class="help-btn help-action" data-action="screenshot" title="Take a screenshot">
+                                        <i data-lucide="camera" class="lucide"></i> Screenshot
+                                    </button>
+                                    <button class="help-btn help-action" data-action="analyzeYouTube" title="Analyze YouTube (transcript + visual)">
+                                        <i data-lucide="youtube" class="lucide"></i> YouTube Analysis
+                                    </button>
+                                    <button class="help-btn help-action" data-action="attachFiles" title="Attach files">
+                                        <i data-lucide="paperclip" class="lucide"></i> Attach Files
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="help-step" data-step="3">
+                            <div class="help-section">
+                                <h4>3/6 · Context & personalization</h4>
+                                <ul>
+                                    <li>Use <strong>@</strong> to mention and attach open tabs.</li>
+                                    <li>Turn on <strong>Auto-include current page URL</strong> in Settings.</li>
+                                    <li>Add a profile to personalize answers; generate a summary.</li>
+                                </ul>
+                                <div class="help-actions">
+                                    <button class="help-btn help-action" data-action="openProfile">
+                                        <i data-lucide="user" class="lucide"></i> Personalization
+                                    </button>
+                                    <button class="help-btn help-action" data-action="prefillAtMentions">
+                                        <i data-lucide="at-sign" class="lucide"></i> Try @mentions
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="help-step" data-step="4">
+                            <div class="help-section">
+                                <h4>4/6 · Google Search grounding</h4>
+                                <p>Enable Search grounding to let Gemini consult the web and add citations.</p>
+                                <div class="help-actions">
+                                    <button class="help-btn help-action" data-action="toggleGrounding">
+                                        <i data-lucide="search" class="lucide"></i> Toggle Grounding
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="help-step" data-step="5">
+                            <div class="help-section">
+                                <h4>5/6 · Sessions & history</h4>
+                                <ul>
+                                    <li>Click the logo to start a new session.</li>
+                                    <li>Use History to revisit, pin, or delete chats.</li>
+                                </ul>
+                                <div class="help-actions">
+                                    <button class="help-btn help-action" data-action="startNewSession">
+                                        <i data-lucide="plus" class="lucide"></i> New Session
+                                    </button>
+                                    <button class="help-btn help-action" data-action="openHistory">
+                                        <i data-lucide="history" class="lucide"></i> Open History
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="help-step" data-step="6">
+                            <div class="help-section">
+                                <h4>6/6 · Tips</h4>
+                                <ul>
+                                    <li>Use markdown in prompts; code blocks are copyable.</li>
+                                    <li>Retry an AI answer via the Retry button under messages.</li>
+                                    <li>Keyboard: Enter to send, Shift+Enter for newline.</li>
+                                </ul>
+                                <p class="help-contact">Need help or have feedback? Contact <a href="mailto:aziz@briskl.tech">aziz@briskl.tech</a></p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <div class="help-footer-left">
+                        <div class="help-progress" id="helpProgress"></div>
+                    </div>
+                    <div class="help-footer-right">
+                        <button class="action-btn secondary" id="helpSkipBtn" type="button">Skip</button>
+                        <button class="action-btn secondary" id="helpPrevBtn" type="button">Back</button>
+                        <button class="primary-btn" id="helpNextBtn" type="button">Next</button>
+                        <button class="primary-btn" id="helpDoneBtn" type="button" style="display:none;">Done</button>
+                    </div>
                 </div>
             </div>
         </div>
