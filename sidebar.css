@@ -363,7 +363,8 @@ body {
 .setting-group input[type="password"],
 .setting-group input[type="email"],
 .setting-group input[type="number"],
-.setting-group select {
+.setting-group select,
+.setting-group textarea {
     width: 100%;
     padding: 12px var(--spacing-md);
     border: 2px solid var(--border-color);
@@ -432,7 +433,8 @@ body {
 .setting-group input[type="password"]:focus,
 .setting-group input[type="email"]:focus,
 .setting-group input[type="number"]:focus,
-.setting-group select:focus {
+.setting-group select:focus,
+.setting-group textarea:focus {
     outline: none;
     border-color: #ff6b6b;
     box-shadow: 0 0 0 3px rgba(255, 107, 107, 0.1);
@@ -482,6 +484,59 @@ body {
 .primary-btn i {
     width: 16px;
     height: 16px;
+}
+
+/* Personalization UI */
+.profile-actions {
+    display: flex;
+    gap: var(--spacing-sm);
+    align-items: center;
+    margin-bottom: var(--spacing-sm);
+}
+
+.profile-files-list {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin: 8px 0 12px 0;
+}
+
+.profile-file-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--spacing-sm);
+    padding: 8px 10px;
+    background: var(--hover-bg);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-sm);
+    font-size: 13px;
+}
+
+.profile-file-name {
+    color: var(--text-primary);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.profile-file-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+}
+
+.profile-remove-btn {
+    background: none;
+    border: 1px solid var(--border-color);
+    color: var(--warning-color);
+    padding: 4px 8px;
+    border-radius: 6px;
+    cursor: pointer;
+}
+
+.profile-remove-btn:hover {
+    background: rgba(248, 81, 73, 0.08);
 }
 
 /* Chat Messages */

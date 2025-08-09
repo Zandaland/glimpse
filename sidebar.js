@@ -202,6 +202,15 @@ class AIChat {
         this.mentionListEl = null;
         this.mentionLabelToTabId = {};
         this.attachedTabIds = new Set();
+
+        // Personalization state
+        this.profile = {
+            includeByDefault: false,
+            aboutText: '',
+            files: [], // {id,name,type,size,textContent}
+            summary: '',
+            includeNextMessage: false
+        };
         
         this.initializeElements();
         this.loadSettings();
@@ -215,6 +224,8 @@ class AIChat {
         this.bindWelcomeActions();
         // Setup mentions UI
         this.setupMentionUI();
+        // Initialize personalization UI
+        this.setupPersonalizationUI();
     }
 
     // Bind actions for the welcome message (e.g., Configure Settings button)
@@ -397,6 +408,16 @@ class AIChat {
         this.historyContent = document.getElementById('historyContent');
         this.chatContainer = document.querySelector('.chat-container');
         this.configureSettingsBtn = document.getElementById('configureSettingsBtn');
+        // Personalization elements
+        this.includeProfileByDefaultEl = document.getElementById('includeProfileByDefault');
+        this.profileTextEl = document.getElementById('profileText');
+        this.profileFileInputEl = document.getElementById('profileFileInput');
+        this.addProfileFilesBtnEl = document.getElementById('addProfileFilesBtn');
+        this.summarizeProfileBtnEl = document.getElementById('summarizeProfileBtn');
+        this.saveProfileBtnEl = document.getElementById('saveProfileBtn');
+        this.profileFilesListEl = document.getElementById('profileFilesList');
+        this.profileSummaryEl = document.getElementById('profileSummary');
+        this.includeProfileNextMessageEl = document.getElementById('includeProfileNextMessage');
     }
 
     bindEvents() {
@@ -908,12 +929,21 @@ class AIChat {
 
     async loadSettings() {
         try {
-            const result = await browser.storage.local.get(['apiKey', 'openrouterApiKey', 'provider', 'model', 'includePageUrl']);
+            const result = await browser.storage.local.get(['apiKey', 'openrouterApiKey', 'provider', 'model', 'includePageUrl', 'profile']);
             this.apiKey = result.apiKey || '';
             this.openrouterApiKey = result.openrouterApiKey || '';
             this.provider = result.provider || 'google';
             this.model = result.model || 'gemini-2.5-flash';
             this.includePageUrl = !!result.includePageUrl;
+            if (result.profile) {
+                this.profile = {
+                    includeByDefault: !!result.profile.includeByDefault,
+                    aboutText: result.profile.aboutText || '',
+                    files: Array.isArray(result.profile.files) ? result.profile.files : [],
+                    summary: result.profile.summary || '',
+                    includeNextMessage: false
+                };
+            }
             this.apiKeyInput.value = this.apiKey;
             this.openrouterApiKeyInput.value = this.openrouterApiKey;
             this.modelInput.value = this.model;
@@ -922,6 +952,7 @@ class AIChat {
             if (includeUrlCheckbox) includeUrlCheckbox.checked = this.includePageUrl;
             this.handleProviderChange();
             this.updateSendButton();
+            this.renderPersonalizationUI();
         } catch (error) {
             console.error('Error loading settings:', error);
         }
@@ -941,7 +972,8 @@ class AIChat {
                 openrouterApiKey: this.openrouterApiKey,
                 provider: this.provider,
                 model: this.model,
-                includePageUrl: this.includePageUrl
+                includePageUrl: this.includePageUrl,
+                profile: this.profile
             });
             // Force close the settings panel
             this.settingsPanel.classList.remove('open');
@@ -952,6 +984,226 @@ class AIChat {
             this.showErrorMessage('Failed to save settings');
             // Still close the panel even if there's an error
             this.settingsPanel.classList.remove('open');
+        }
+    }
+
+    setupPersonalizationUI() {
+        if (this.addProfileFilesBtnEl) {
+            this.addProfileFilesBtnEl.addEventListener('click', (e) => {
+                e.stopPropagation();
+                if (this.profileFileInputEl) this.profileFileInputEl.click();
+            });
+        }
+        if (this.profileFileInputEl) {
+            this.profileFileInputEl.addEventListener('change', async (e) => {
+                const files = Array.from(e.target.files || []);
+                for (const file of files) {
+                    try {
+                        const textContent = await this.extractTextFromFile(file);
+                        const stored = {
+                            id: 'pf_' + Date.now() + '_' + Math.random().toString(36).slice(2),
+                            name: file.name,
+                            type: file.type || this.guessMimeFromName(file.name),
+                            size: file.size || textContent.length,
+                            textContent
+                        };
+                        this.profile.files.push(stored);
+                    } catch (err) {
+                        console.error('Profile file parse failed:', err);
+                        this.showErrorMessage(`Failed to parse ${file.name}`);
+                    }
+                }
+                if (this.profileFileInputEl) this.profileFileInputEl.value = '';
+                this.renderPersonalizationUI();
+            });
+        }
+        if (this.summarizeProfileBtnEl) {
+            this.summarizeProfileBtnEl.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.generateProfileSummary();
+            });
+        }
+        if (this.saveProfileBtnEl) {
+            this.saveProfileBtnEl.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await this.saveProfileToStorage();
+            });
+        }
+        if (this.includeProfileByDefaultEl) {
+            this.includeProfileByDefaultEl.addEventListener('change', () => {
+                this.profile.includeByDefault = !!this.includeProfileByDefaultEl.checked;
+            });
+        }
+        if (this.includeProfileNextMessageEl) {
+            this.includeProfileNextMessageEl.addEventListener('change', () => {
+                this.profile.includeNextMessage = !!this.includeProfileNextMessageEl.checked;
+            });
+        }
+        if (this.profileTextEl) {
+            this.profileTextEl.addEventListener('input', () => {
+                this.profile.aboutText = this.profileTextEl.value;
+            });
+        }
+        if (this.profileSummaryEl) {
+            this.profileSummaryEl.addEventListener('input', () => {
+                this.profile.summary = this.profileSummaryEl.value;
+            });
+        }
+    }
+
+    renderPersonalizationUI() {
+        if (this.includeProfileByDefaultEl) this.includeProfileByDefaultEl.checked = !!this.profile.includeByDefault;
+        if (this.profileTextEl) this.profileTextEl.value = this.profile.aboutText || '';
+        if (this.profileSummaryEl) this.profileSummaryEl.value = this.profile.summary || '';
+        if (this.includeProfileNextMessageEl) this.includeProfileNextMessageEl.checked = !!this.profile.includeNextMessage;
+        if (this.profileFilesListEl) {
+            this.profileFilesListEl.innerHTML = '';
+            (this.profile.files || []).forEach((f) => {
+                const row = document.createElement('div');
+                row.className = 'profile-file-item';
+                row.innerHTML = `
+                    <span class="profile-file-name">${f.name}</span>
+                    <div class="profile-file-actions">
+                        <button class="profile-remove-btn" data-id="${f.id}"><i data-lucide="x" style="width:14px;height:14px;"></i> Remove</button>
+                    </div>
+                `;
+                this.profileFilesListEl.appendChild(row);
+            });
+            // Bind remove
+            this.profileFilesListEl.querySelectorAll('.profile-remove-btn').forEach(btn => {
+                btn.addEventListener('click', (e) => {
+                    const id = e.currentTarget.getAttribute('data-id');
+                    this.profile.files = (this.profile.files || []).filter(f => f.id !== id);
+                    this.renderPersonalizationUI();
+                });
+            });
+            renderLucideIcons();
+        }
+    }
+
+    async saveProfileToStorage() {
+        try {
+            await browser.storage.local.set({ profile: this.profile });
+            this.showSuccessMessage('Profile saved');
+        } catch (e) {
+            console.error('Profile save failed:', e);
+            this.showErrorMessage('Failed to save profile');
+        }
+    }
+
+    guessMimeFromName(name) {
+        const lower = (name || '').toLowerCase();
+        if (lower.endsWith('.md')) return 'text/markdown';
+        if (lower.endsWith('.txt')) return 'text/plain';
+        if (lower.endsWith('.pdf')) return 'application/pdf';
+        return 'text/plain';
+    }
+
+    async extractTextFromFile(file) {
+        const type = (file.type || this.guessMimeFromName(file.name) || '').toLowerCase();
+        if (type.includes('pdf')) {
+            // Use pdf.js loaded from CDN in sidebar.html
+            const arrayBuffer = await file.arrayBuffer();
+            const pdfjsLib = window['pdfjsLib'] || window['pdfjs-dist/build/pdf'];
+            if (!pdfjsLib || !pdfjsLib.getDocument) throw new Error('pdf.js not available');
+            try {
+                if (pdfjsLib.GlobalWorkerOptions) {
+                    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js';
+                }
+            } catch (_) { /* ignore */ }
+            let doc;
+            try {
+                doc = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+            } catch (err) {
+                throw new Error('PDF open failed');
+            }
+            let text = '';
+            const numPages = Math.min(doc.numPages || 0, 50); // cap for safety
+            for (let p = 1; p <= numPages; p++) {
+                try {
+                    const page = await doc.getPage(p);
+                    const content = await page.getTextContent();
+                    const strings = (content.items || []).map(it => it.str).filter(Boolean);
+                    text += strings.join(' ') + '\n';
+                } catch (_) { /* skip page on error */ }
+            }
+            try { await doc.destroy?.(); } catch (_) {}
+            return text.trim();
+        }
+        if (type.includes('markdown')) {
+            const text = await file.text();
+            return text;
+        }
+        if (type.includes('text') || type === '') {
+            const text = await file.text();
+            return text;
+        }
+        // Fallback: try text(); if fails, return empty
+        try { return await file.text(); } catch { return ''; }
+    }
+
+    async generateProfileSummary() {
+        const raw = this.composeRawProfileText();
+        if (!raw || raw.length < 10) {
+            this.showErrorMessage('Add some profile text or files first');
+            return;
+        }
+        // Use the active provider to create a short summary
+        const systemHint = 'You are summarizing a user profile to be used as a compact, neutral system prompt. Keep it under 1500 tokens, structured as: Goals, Preferences, Writing Style, Do, Don\'t, Per-site nuances if any.';
+        const prompt = `${systemHint}\n\nUser profile:\n${raw}`;
+        try {
+            const summary = await this.invokeLLMForSummary(prompt);
+            this.profile.summary = (summary || '').trim();
+            if (this.profileSummaryEl) this.profileSummaryEl.value = this.profile.summary;
+            this.showSuccessMessage('Profile summary generated');
+        } catch (e) {
+            console.error('Summary gen failed:', e);
+            this.showErrorMessage('Failed to generate summary');
+        }
+    }
+
+    composeRawProfileText() {
+        const parts = [];
+        if (this.profile.aboutText) parts.push(`[About Me]\n${this.profile.aboutText}`);
+        (this.profile.files || []).forEach((f, idx) => {
+            if (f.textContent && f.textContent.length > 0) {
+                parts.push(`[File ${idx + 1}: ${f.name}]\n${f.textContent}`);
+            }
+        });
+        return parts.join('\n\n').trim();
+    }
+
+    async invokeLLMForSummary(promptText) {
+        // Lightweight call that reuses provider settings; maps to appropriate API
+        if (this.provider === 'openrouter') {
+            const url = `https://openrouter.ai/api/v1/chat/completions`;
+            const headers = { 'Content-Type': 'application/json', 'Authorization': `Bearer ${this.openrouterApiKey}` };
+            const body = {
+                model: this.model,
+                messages: [
+                    { role: 'system', content: 'Summarize user profile.' },
+                    { role: 'user', content: promptText }
+                ],
+                max_tokens: 1500,
+                temperature: 0.2
+            };
+            const res = await fetch(url, { method: 'POST', headers, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error?.message || 'OpenRouter error');
+            return data?.choices?.[0]?.message?.content || '';
+        } else {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/${this.model}:generateContent?key=${this.apiKey}`;
+            const body = {
+                contents: [
+                    { role: 'user', parts: [{ text: `Summarize user profile.\n\n${promptText}` }] }
+                ],
+                generationConfig: { temperature: 0.2, topK: 1, topP: 0.9, maxOutputTokens: 3000 }
+            };
+            const res = await fetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+            const data = await res.json();
+            if (!res.ok) throw new Error(data?.error?.message || 'Gemini error');
+            const candidate = data?.candidates?.[0];
+            return candidate?.content?.parts?.[0]?.text || '';
         }
     }
 
@@ -2558,6 +2810,12 @@ class AIChat {
 
         // Build the conversation history as before
         const contents = [];
+        // Inject profile summary if opted-in
+        const shouldIncludeProfile = this.profile.includeNextMessage || this.profile.includeByDefault;
+        const profileTextForPrompt = shouldIncludeProfile ? (this.profile.summary?.trim() || this.composeRawProfileText()) : '';
+        if (profileTextForPrompt) {
+            contents.push({ role: 'user', parts: [{ text: `[User Profile]\n${profileTextForPrompt}` }] });
+        }
         for (const msg of this.messages) {
             if (msg.sender === 'user' || msg.sender === 'ai') {
                 const role = msg.sender === 'user' ? 'user' : 'model';
@@ -2663,6 +2921,8 @@ ${this.lastTranscript}` });
         if (userParts.length > 0) {
             contents.push({ role: 'user', parts: userParts });
         }
+        // Reset one-off include
+        if (this.profile.includeNextMessage) this.profile.includeNextMessage = false;
 
         if (isOpenRouter) {
             url = `https://openrouter.ai/api/v1/chat/completions`;
