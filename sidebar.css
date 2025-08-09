@@ -177,7 +177,7 @@ body {
 .ai-avatar {
     width: 40px;
     height: 40px;
-    background: rgba(255, 255, 255, 0.15);
+    background: #0b0f14;
     border-radius: 50%;
     display: flex;
     align-items: center;
@@ -194,9 +194,9 @@ body {
     margin-bottom: var(--spacing-md);
 }
 
-.ai-avatar i {
-    width: 20px;
-    height: 20px;
+.ai-avatar img, .ai-avatar i {
+    width: 70%;
+    height: 70%;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -206,11 +206,13 @@ body {
     line-height: 1;
     text-align: center;
     vertical-align: middle;
+    object-fit: contain;
+    border-radius: 8px; /* subtle rounding for square-ish logos */
 }
 
-.ai-avatar.large i {
-    width: 28px;
-    height: 28px;
+.ai-avatar.large img, .ai-avatar.large i {
+    width: 72%;
+    height: 72%;
 }
 
 .header-text {
@@ -266,6 +268,45 @@ body {
     height: 18px;
 }
 
+/* Lucide icon sizing defaults and context rules */
+.lucide {
+    width: 16px;
+    height: 16px;
+}
+.header-btn .lucide {
+    width: 18px;
+    height: 18px;
+}
+.settings-header .lucide {
+    width: 20px;
+    height: 20px;
+}
+.action-btn .lucide,
+.profile-actions .lucide {
+    width: 16px;
+    height: 16px;
+}
+.input-actions-left .lucide {
+    width: 20px;
+    height: 20px;
+}
+.send-button .lucide {
+    width: 18px;
+    height: 18px;
+}
+.stop-button .lucide {
+    width: 16px;
+    height: 16px;
+}
+.qa-icon .lucide {
+    width: 18px;
+    height: 18px;
+}
+.no-history .lucide {
+    width: 48px;
+    height: 48px;
+}
+
 /* Settings Panel */
 .settings-panel {
     position: absolute;
@@ -316,7 +357,7 @@ body {
 .close-settings-btn {
     width: 32px;
     height: 32px;
-    background: red !important; /* Temporary: make it obvious */
+    background: rgba(255, 255, 255, 0.1);
     border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     color: var(--text-primary);
@@ -325,12 +366,11 @@ body {
     align-items: center;
     justify-content: center;
     transition: all 0.2s ease;
-    z-index: 9999; /* Ensure it's on top */
+    backdrop-filter: blur(10px);
 }
 
 .close-settings-btn:hover {
-    background: var(--border-color);
-    color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.2);
 }
 
 .setting-group {
@@ -789,8 +829,27 @@ body {
 
 .message-actions {
     display: flex;
-    gap: var(--spacing-xs);
-    margin-top: var(--spacing-xs);
+    gap: 6px;
+    margin-top: 8px;
+    padding-top: 8px;
+    border-top: 1px dashed var(--border-color);
+}
+
+.message-action-btn {
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    color: var(--text-secondary);
+    padding: 4px 10px;
+    border-radius: 8px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.message-action-btn:hover {
+    background: var(--hover-bg);
+    color: var(--text-primary);
+    border-color: #ff6b6b;
 }
 
 .message.user .message-content {
@@ -807,10 +866,17 @@ body {
 /* Code blocks and inline code styling */
 .code-block-container {
     border: 1px solid var(--border-color);
-    border-radius: var(--radius);
+    border-radius: 10px;
     background: var(--card-bg);
     overflow: hidden;
-    margin: 12px 0;
+    margin: 14px 0;
+    box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.code-block-container:hover {
+    border-color: rgba(255, 107, 107, 0.5);
+    box-shadow: 0 10px 24px rgba(0,0,0,0.24);
 }
 
 .code-block-header {
@@ -818,15 +884,19 @@ body {
     align-items: center;
     justify-content: space-between;
     gap: 8px;
-    padding: 8px 10px;
-    background: var(--hover-bg);
+    padding: 10px 12px;
+    background: linear-gradient(0deg, rgba(255,255,255,0.02), rgba(255,255,255,0.02)), var(--hover-bg);
     border-bottom: 1px solid var(--border-color);
 }
 
 .code-block-language {
     font-size: 12px;
     color: var(--text-secondary);
-    font-weight: 500;
+    font-weight: 600;
+    padding: 2px 8px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid var(--border-color);
+    border-radius: 999px;
 }
 
 .copy-code-btn {
@@ -836,10 +906,11 @@ body {
     background: var(--card-bg);
     color: var(--text-secondary);
     border: 1px solid var(--border-color);
-    padding: 4px 8px;
-    border-radius: 6px;
+    padding: 6px 10px;
+    border-radius: 8px;
     cursor: pointer;
     font-size: 12px;
+    backdrop-filter: saturate(140%);
 }
 
 .copy-code-btn:hover {
@@ -864,25 +935,51 @@ body {
     padding: 12px 14px;
     background: var(--darker-bg);
     overflow-x: auto;
+    max-height: 380px;
+    border-top: 1px solid var(--border-color);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    tab-size: 2;
 }
 
 .message-content pre code {
     display: block;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
-    font-size: 12.5px;
-    line-height: 1.6;
+    font-size: 12.75px;
+    line-height: 1.65;
     white-space: pre;
     color: var(--text-primary);
 }
 
 .message-content code {
-    background: var(--hover-bg);
+    background: rgba(255,255,255,0.06);
     border: 1px solid var(--border-color);
     border-radius: 6px;
     padding: 2px 6px;
     font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace;
     font-size: 12.5px;
     color: var(--text-primary);
+}
+
+/* Code selection and scrollbar enhancements */
+.message-content pre code::selection {
+    background: rgba(255, 107, 107, 0.2);
+}
+
+.message-content pre::-webkit-scrollbar {
+    height: 10px;
+    width: 10px;
+}
+.message-content pre::-webkit-scrollbar-track {
+    background: var(--card-bg);
+    border-top: 1px solid var(--border-color);
+}
+.message-content pre::-webkit-scrollbar-thumb {
+    background: var(--border-color);
+    border-radius: 10px;
+}
+.message-content pre::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 107, 107, 0.6);
 }
 
 /* Prevent list/table-like layout when not actually a table */
@@ -1734,6 +1831,15 @@ textarea,
     100% {
         opacity: 0;
     }
+}
+
+/* Spinning animation for lucide loader icons */
+.lucide-spin {
+    animation: lucide-spin 1s linear infinite;
+}
+@keyframes lucide-spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
 }
 
 /* Typing indicator styles */

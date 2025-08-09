@@ -15,8 +15,8 @@
     <div class="chat-container">
         <header class="chat-header">
             <div class="header-content">
-                <div class="ai-avatar">
-                    <i data-lucide="bot" style="width:20px;height:20px;"></i>
+                <div class="ai-avatar" id="headerLogo" title="Start new session">
+                    <img src="icon-48.png" alt="Glimpse logo" />
                 </div>
                 <div class="header-text">
                     <h1>Glimpse</h1>
@@ -24,13 +24,13 @@
                 </div>
                 <div class="header-buttons">
                     <button class="header-btn" id="historyBtn" title="Chat History">
-                        <i data-lucide="history" style="width:18px;height:18px;"></i>
+                        <i data-lucide="history" class="lucide"></i>
                     </button>
                     <button class="header-btn" id="newSessionBtn" title="New Session">
-                        <i data-lucide="plus" style="width:18px;height:18px;"></i>
+                        <i data-lucide="plus" class="lucide"></i>
                     </button>
                     <button class="header-btn" id="settingsBtn" title="Settings">
-                        <i data-lucide="settings" style="width:18px;height:18px;"></i>
+                        <i data-lucide="settings" class="lucide"></i>
                     </button>
                 </div>
             </div>
@@ -40,20 +40,16 @@
             <div class="settings-content">
                 <div class="settings-header">
                     <h3>
-                        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="settings" style="width:20px;height:20px;"></i>
-                        </svg>
+                        <i data-lucide="settings" class="lucide"></i>
                         Settings
                     </h3>
                     <button class="close-settings-btn" id="closeSettingsBtn">
-                        <i data-lucide="x" style="width:16px;height:16px;"></i>
+                        <i data-lucide="x" class="lucide"></i>
                     </button>
                 </div>
                 <div class="setting-group">
                     <label for="providerSelect">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="globe" style="width:16px;height:16px;"></i>
-                        </svg>
+                        <i data-lucide="globe" class="lucide"></i>
                         Provider
                     </label>
                     <select id="providerSelect">
@@ -63,35 +59,29 @@
                 </div>
                 <div class="setting-group">
                     <label for="apiKey">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="key" style="width:16px;height:16px;"></i>
-                        </svg>
+                        <i data-lucide="key" class="lucide"></i>
                         <span id="apiKeyLabel">Gemini API Key</span>
                     </label>
                     <div class="input-wrapper" id="geminiKeyWrapper">
                         <input type="password" id="apiKey" placeholder="Enter your Gemini API key">
                         <button class="toggle-password" type="button">
-                            <i data-lucide="eye" style="width:16px;height:16px;"></i>
+                            <i data-lucide="eye" class="lucide"></i>
                         </button>
                     </div>
                     <div class="input-wrapper" id="openrouterKeyWrapper" style="display:none; margin-top:8px;">
                         <input type="password" id="openrouterApiKey" placeholder="Enter your OpenRouter API key">
                         <button class="toggle-password" type="button">
-                            <i data-lucide="eye" style="width:16px;height:16px;"></i>
+                            <i data-lucide="eye" class="lucide"></i>
                         </button>
                     </div>
                     <button id="saveSettings" class="primary-btn">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="save" style="width:16px;height:16px;"></i>
-                        </svg>
+                        <i data-lucide="save" class="lucide"></i>
                         Save Settings
                     </button>
                 </div>
                 <div class="setting-group">
                     <label for="modelSelect">
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <i data-lucide="cpu" style="width:16px;height:16px;"></i>
-                    </svg>
+                    <i data-lucide="cpu" class="lucide"></i>
                     Model Name
                 </label>
                 <input type="text" id="modelInput" placeholder="e.g. gemini-2.5-flash" autocomplete="off">
@@ -100,9 +90,7 @@
                 <!-- Auto-include Page URL setting -->
                 <div class="setting-group">
                     <label>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="link" style="width:16px;height:16px;"></i>
-                        </svg>
+                        <i data-lucide="link" class="lucide"></i>
                         Auto-include current page URL in prompts
                     </label>
                     <div class="checkbox-row">
@@ -111,12 +99,23 @@
                     </div>
                 </div>
 
+                <!-- Google Search grounding -->
+                <div class="setting-group">
+                    <label>
+                        <i data-lucide="search" class="lucide"></i>
+                        Enable Google Search grounding
+                    </label>
+                    <div class="checkbox-row">
+                        <input type="checkbox" id="enableGoogleSearch">
+                        <label for="enableGoogleSearch">Let Gemini use Google Search for real-time info and citations</label>
+                    </div>
+                    <div class="hint">Requires supported Gemini models; adds citations when available.</div>
+                </div>
+
                 <!-- Personalization (Profile) -->
                 <div class="setting-group" id="personalizationGroup">
                     <label>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="user" style="width:16px;height:16px;"></i>
-                        </svg>
+                        <i data-lucide="user" class="lucide"></i>
                         Personalization (Profile)
                     </label>
                     <div class="checkbox-row">
@@ -125,9 +124,7 @@
                     </div>
 
                     <label for="profileText">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="file-text" style="width:16px;height:16px;"></i>
-                        </svg>
+                        <i data-lucide="file-text" class="lucide"></i>
                         About me
                     </label>
                     <textarea id="profileText" placeholder="Add details about yourself, goals, preferences, writing style, do/don'ts..."></textarea>
@@ -135,15 +132,15 @@
                     <div class="profile-actions">
                         <input type="file" id="profileFileInput" accept=".txt,.md,.pdf" multiple style="display:none;">
                         <button id="addProfileFilesBtn" class="action-btn attach" type="button">
-                            <i data-lucide="paperclip" style="width:16px;height:16px;"></i>
+                            <i data-lucide="paperclip" class="lucide"></i>
                             Attach profile files (.txt, .md, .pdf)
                         </button>
                         <button id="summarizeProfileBtn" class="action-btn secondary" type="button" title="Generate a compact summary used in prompts">
-                            <i data-lucide="wand-2" style="width:16px;height:16px;"></i>
+                            <i data-lucide="wand-2" class="lucide"></i>
                             Generate summary
                         </button>
                         <button id="saveProfileBtn" class="primary-btn" type="button">
-                            <i data-lucide="save" style="width:16px;height:16px;"></i>
+                            <i data-lucide="save" class="lucide"></i>
                             Save Profile
                         </button>
                     </div>
@@ -151,9 +148,7 @@
                     <div id="profileFilesList" class="profile-files-list"></div>
 
                     <label for="profileSummary">
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                            <i data-lucide="sparkles" style="width:16px;height:16px;"></i>
-                        </svg>
+                        <i data-lucide="sparkles" class="lucide"></i>
                         Profile summary (used in prompts)
                     </label>
                     <textarea id="profileSummary" placeholder="Summary will appear here (editable)" ></textarea>
@@ -169,41 +164,41 @@
         <div class="chat-messages" id="chatMessages">
             <div class="welcome-message">
                 <div class="ai-avatar large">
-                    <i data-lucide="bot" style="width:28px;height:28px;"></i>
+                    <img src="icon-96.png" alt="Glimpse logo large" />
                 </div>
                 <h2>Welcome to Glimpse</h2>
                 <p>I'm here to help you with any questions or tasks. Please configure your Gemini API key in settings to get started.</p>
                 <div class="welcome-actions">
                     <button class="action-btn" id="configureSettingsBtn">
-                        <i data-lucide="settings" style="width:16px;height:16px;"></i>
+                        <i data-lucide="settings" class="lucide"></i>
                         Configure Settings
                     </button>
                 </div>
                 <!-- Quick Actions panel visible only on welcome/new sessions -->
                 <div class="quick-actions" id="welcomeQuickActions">
                     <div class="quick-action" id="qaSummarize">
-                        <div class="qa-icon"><i data-lucide="file-text" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-icon"><i data-lucide="file-text" class="lucide"></i></div>
                         <div class="qa-text">
                             <div class="qa-title">Summarize page</div>
                             <div class="qa-desc">Creates a concise summary of the current page</div>
                         </div>
                     </div>
                     <div class="quick-action" id="qaExtract">
-                        <div class="qa-icon"><i data-lucide="list-checks" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-icon"><i data-lucide="list-checks" class="lucide"></i></div>
                         <div class="qa-text">
                             <div class="qa-title">Extract action items</div>
                             <div class="qa-desc">Finds tasks with owners and deadlines</div>
                         </div>
                     </div>
                     <div class="quick-action" id="qaExplain">
-                        <div class="qa-icon"><i data-lucide="image" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-icon"><i data-lucide="image" class="lucide"></i></div>
                         <div class="qa-text">
                             <div class="qa-title">Explain a screenshot</div>
                             <div class="qa-desc">Describes what’s in an attached image</div>
                         </div>
                     </div>
                     <div class="quick-action" id="qaSelection">
-                        <div class="qa-icon"><i data-lucide="mouse-pointer" style="width:18px;height:18px;"></i></div>
+                        <div class="qa-icon"><i data-lucide="mouse-pointer" class="lucide"></i></div>
                         <div class="qa-text">
                             <div class="qa-title">Use selected text</div>
                             <div class="qa-desc">Captures selected text from the page</div>
@@ -220,16 +215,16 @@
                 
                 <div class="input-actions-left" id="toolbarActions">
                     <button id="captureTabButton" class="action-btn secondary" title="Capture current tab content (text)">
-                        <i data-lucide="file-text" style="width:16px;height:16px;"></i>
+                        <i data-lucide="file-text" class="lucide"></i>
                     </button>
                     <button id="screenshotButton" class="action-btn screenshot" title="Take screenshot of current tab">
-                        <i data-lucide="camera" style="width:16px;height:16px;"></i>
+                        <i data-lucide="camera" class="lucide"></i>
                     </button>
                     <button id="youtubeAnalysisButton" class="action-btn youtube" title="Analyze YouTube video (transcript + visual)">
-                        <i data-lucide="youtube" style="width:16px;height:16px;"></i>
+                        <i data-lucide="youtube" class="lucide"></i>
                     </button>
                     <button id="attachButton" class="action-btn attach" title="Attach files">
-                        <i data-lucide="paperclip" style="width:16px;height:16px;"></i>
+                        <i data-lucide="paperclip" class="lucide"></i>
                     </button>
                     <!-- Quick Actions moved to welcome only; toolbar shows only capture/attach -->
                 </div>
@@ -238,10 +233,10 @@
                     <textarea id="messageInput" placeholder="Ask or type @ to attach open tabs (e.g. @amazon) — Ctrl+V to paste images" rows="1"></textarea>
                     <div class="input-actions-right">
                         <button id="sendButton" class="send-button" disabled>
-                            <i data-lucide="send" style="width:18px;height:18px;"></i>
+                            <i data-lucide="send" class="lucide"></i>
                         </button>
                         <button id="stopButton" class="stop-button" style="display: none;">
-                            <i data-lucide="square" style="width:16px;height:16px;"></i>
+                            <i data-lucide="square" class="lucide"></i>
                         </button>
                     </div>
                 </div>
@@ -250,25 +245,21 @@
 
         <!-- History Panel -->
         <div class="history-panel" id="historyPanel">
-            <div class="history-header">
+                <div class="history-header">
                 <div class="history-title">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <i data-lucide="history" style="width:20px;height:20px;"></i>
-                    </svg>
+                    <i data-lucide="history" class="lucide"></i>
                     <h3>Chat History</h3>
                 </div>
                 <button class="delete-all-btn" id="deleteAllHistoryBtn" title="Delete All History" style="margin-right:8px;">
-                    <i data-lucide="trash-2" style="width:16px;height:16px;"></i> Delete All
+                    <i data-lucide="trash-2" class="lucide"></i> Delete All
                 </button>
                 <button class="close-btn" id="closeHistoryBtn">
-                    <i data-lucide="x" style="width:16px;height:16px;"></i>
+                    <i data-lucide="x" class="lucide"></i>
                 </button>
             </div>
             <div class="history-content" id="historyContent">
                 <div class="no-history">
-                    <svg width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                        <i data-lucide="message-square" style="width:48px;height:48px;"></i>
-                    </svg>
+                    <i data-lucide="message-square" class="lucide"></i>
                     <p>No chat history yet</p>
                     <span>Start a conversation to see your history here</span>
                 </div>
