@@ -803,7 +803,9 @@ body {
     border-radius: var(--radius);
     border: 2px solid var(--border-color);
     transition: border-color 0.2s ease;
-    overflow: hidden;
+    /* Allow mention dropdown to appear outside the inner input container */
+    overflow: visible;
+    position: relative;
 }
 
 .chat-input-wrapper:focus-within {
@@ -885,6 +887,75 @@ body {
     align-items: flex-end;
     padding: var(--spacing-md);
     gap: var(--spacing-md);
+}
+
+/* Mention dropdown */
+.mention-dropdown {
+    position: absolute;
+    left: var(--spacing-md);
+    bottom: 64px; /* sits above the input area */
+    min-width: 260px;
+    max-width: calc(100% - 2 * var(--spacing-md));
+    max-height: 240px;
+    overflow-y: auto;
+    background: var(--card-bg);
+    border: 1px solid var(--border-color);
+    box-shadow: var(--shadow-lg);
+    border-radius: var(--radius-sm);
+    z-index: 2000;
+    display: none;
+}
+
+.mention-list {
+    list-style: none;
+    margin: 0;
+    padding: 6px;
+}
+
+.mention-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    border-radius: 6px;
+    cursor: pointer;
+    color: var(--text-primary);
+}
+
+.mention-item:hover,
+.mention-item.active {
+    background: var(--hover-bg);
+}
+
+.mention-favicon {
+    width: 16px;
+    height: 16px;
+    border-radius: 3px;
+    background: var(--border-color);
+    flex-shrink: 0;
+}
+
+.mention-texts {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+}
+
+.mention-primary {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-primary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.mention-secondary {
+    font-size: 12px;
+    color: var(--text-secondary);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
 }
 
 #messageInput {

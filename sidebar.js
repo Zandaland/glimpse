@@ -192,6 +192,16 @@ class AIChat {
         this.abortController = null;
         this.lastMessage = null;
         this.lastFiles = [];
+        // Mentions (@-tabs) state
+        this.isMentionOpen = false;
+        this.mentionTabs = [];
+        this.mentionFiltered = [];
+        this.mentionTriggerPos = null;
+        this.mentionSelectedIndex = 0;
+        this.mentionDropdownEl = null;
+        this.mentionListEl = null;
+        this.mentionLabelToTabId = {};
+        this.attachedTabIds = new Set();
         
         this.initializeElements();
         this.loadSettings();
@@ -203,6 +213,8 @@ class AIChat {
         this.chatMessages.innerHTML = getWelcomeMessageHTML();
         renderLucideIcons();
         this.bindWelcomeActions();
+        // Setup mentions UI
+        this.setupMentionUI();
     }
 
     // Bind actions for the welcome message (e.g., Configure Settings button)
@@ -397,15 +409,38 @@ class AIChat {
             this.stopRequest();
         });
         this.messageInput.addEventListener('keydown', (e) => {
+            // Handle mention navigation/commit
+            if (this.isMentionOpen) {
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    this.moveMentionSelection(1);
+                    return;
+                }
+                if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    this.moveMentionSelection(-1);
+                    return;
+                }
+                if (e.key === 'Enter' || e.key === 'Tab') {
+                    e.preventDefault();
+                    this.commitMention();
+                    return;
+                }
+                if (e.key === 'Escape') {
+                    this.closeMention();
+                    return;
+                }
+            }
             if (e.key === 'Enter' && !e.shiftKey) {
                 e.preventDefault();
                 this.sendMessage();
             }
         });
         
-        this.messageInput.addEventListener('input', () => {
+        this.messageInput.addEventListener('input', (e) => {
             this.updateSendButton();
             this.autoResizeTextarea();
+            this.onInputForMention(e);
         });
 
         if (this.settingsBtn) {
@@ -1077,6 +1112,9 @@ class AIChat {
         const message = this.messageInput.value.trim();
         if ((!message && this.attachedFiles.length === 0) || !this.apiKey || this.isTyping) return;
 
+        // If message contains @mentions, attach those tabs before sending
+        await this.attachMentionedTabsIfAny(message);
+
         // Store files before clearing
         const filesToSend = [...this.attachedFiles];
         
@@ -1472,6 +1510,306 @@ class AIChat {
                 }
                 break;
             }
+        }
+    }
+
+    // ===== @mention (open tabs) =====
+    setupMentionUI() {
+        const wrapper = document.querySelector('.chat-input-wrapper');
+        if (!wrapper) return;
+        const dropdown = document.createElement('div');
+        dropdown.className = 'mention-dropdown';
+        dropdown.innerHTML = `<ul class="mention-list"></ul>`;
+        wrapper.appendChild(dropdown);
+        this.mentionDropdownEl = dropdown;
+        this.mentionListEl = dropdown.querySelector('.mention-list');
+
+        // Click outside closes
+        document.addEventListener('click', (e) => {
+            if (!this.isMentionOpen) return;
+            if (!dropdown.contains(e.target) && e.target !== this.messageInput) {
+                this.closeMention();
+            }
+        });
+    }
+
+    async fetchOpenTabs() {
+        try {
+            const tabs = await browser.tabs.query({ currentWindow: true });
+            this.mentionTabs = tabs.filter(t => t.url && !/^about:|^chrome:|^chrome-extension:|^moz-extension:/.test(t.url));
+        } catch (e) {
+            console.error('Error fetching tabs for mentions:', e);
+            this.mentionTabs = [];
+        }
+    }
+
+    getHostname(url) {
+        try { return new URL(url).hostname.replace(/^www\./,''); } catch { return ''; }
+    }
+
+    onInputForMention() {
+        const value = this.messageInput.value;
+        const caret = this.messageInput.selectionStart || 0;
+        // Find a trigger '@' immediately preceding caret with no whitespace between
+        let trigger = -1;
+        for (let i = caret - 1; i >= 0; i--) {
+            const ch = value[i];
+            if (ch === '@') { trigger = i; break; }
+            if (/\s/.test(ch)) break; // stop at whitespace
+        }
+        if (trigger >= 0) {
+            this.mentionTriggerPos = trigger;
+            const term = value.slice(trigger + 1, caret).toLowerCase();
+            this.openMention(term);
+        } else if (this.isMentionOpen) {
+            this.closeMention();
+        }
+    }
+
+    async openMention(term) {
+        if (!this.isMentionOpen) {
+            await this.fetchOpenTabs();
+        }
+        this.isMentionOpen = true;
+        const q = (term || '').trim();
+        const tabs = this.mentionTabs;
+        const filtered = tabs
+            .map(t => ({
+                id: t.id,
+                title: t.title || this.getHostname(t.url) || t.url,
+                url: t.url,
+                favIconUrl: t.favIconUrl || ''
+            }))
+            .filter(t => {
+                if (!q) return true;
+                const host = this.getHostname(t.url).toLowerCase();
+                return t.title.toLowerCase().includes(q) || host.includes(q);
+            })
+            .slice(0, 20);
+        this.mentionFiltered = filtered;
+        this.mentionSelectedIndex = 0;
+        this.renderMentionList();
+    }
+
+    closeMention() {
+        this.isMentionOpen = false;
+        this.mentionTriggerPos = null;
+        this.mentionFiltered = [];
+        this.mentionSelectedIndex = 0;
+        if (this.mentionDropdownEl) this.mentionDropdownEl.style.display = 'none';
+    }
+
+    renderMentionList() {
+        if (!this.mentionDropdownEl || !this.mentionListEl) return;
+        if (!this.isMentionOpen || this.mentionFiltered.length === 0) {
+            this.mentionDropdownEl.style.display = 'none';
+            return;
+        }
+        this.mentionDropdownEl.style.display = 'block';
+        this.mentionListEl.innerHTML = '';
+        this.mentionFiltered.forEach((t, idx) => {
+            const li = document.createElement('li');
+            li.className = 'mention-item' + (idx === this.mentionSelectedIndex ? ' active' : '');
+            const host = this.getHostname(t.url);
+            const img = document.createElement('img');
+            img.className = 'mention-favicon';
+            if (t.favIconUrl) img.src = t.favIconUrl;
+            img.alt = '';
+            img.addEventListener('error', () => { img.style.display = 'none'; });
+            const texts = document.createElement('div');
+            texts.className = 'mention-texts';
+            const primary = document.createElement('div');
+            primary.className = 'mention-primary';
+            primary.textContent = t.title;
+            const secondary = document.createElement('div');
+            secondary.className = 'mention-secondary';
+            secondary.textContent = host;
+            texts.appendChild(primary);
+            texts.appendChild(secondary);
+            li.appendChild(img);
+            li.appendChild(texts);
+            li.addEventListener('mousedown', (e) => { // mousedown to commit before blur
+                e.preventDefault();
+                this.mentionSelectedIndex = idx;
+                this.commitMention();
+            });
+            this.mentionListEl.appendChild(li);
+        });
+    }
+
+    moveMentionSelection(delta) {
+        if (!this.isMentionOpen || this.mentionFiltered.length === 0) return;
+        const n = this.mentionFiltered.length;
+        this.mentionSelectedIndex = (this.mentionSelectedIndex + delta + n) % n;
+        this.renderMentionList();
+    }
+
+    sanitizeLabel(text) {
+        return text.toLowerCase()
+            .replace(/https?:\/\//, '')
+            .replace(/^www\./, '')
+            .replace(/[^a-z0-9\-_.]+/g, '-')
+            .replace(/-{2,}/g, '-')
+            .replace(/^-|-$|\.$/g, '')
+            .slice(0, 40);
+    }
+
+    async commitMention() {
+        if (!this.isMentionOpen || this.mentionFiltered.length === 0 || this.mentionTriggerPos == null) return;
+        const chosen = this.mentionFiltered[this.mentionSelectedIndex];
+        const host = this.getHostname(chosen.url);
+        const baseLabel = this.sanitizeLabel(host || chosen.title || 'tab');
+        // ensure uniqueness if same label already used
+        let label = baseLabel || 'tab';
+        let suffix = 2;
+        while (this.mentionLabelToTabId[label]) {
+            label = `${baseLabel}-${suffix++}`;
+        }
+        this.mentionLabelToTabId[label] = chosen.id;
+
+        // Replace the trigger text from mentionTriggerPos..caret with @label + space
+        const value = this.messageInput.value;
+        const caret = this.messageInput.selectionStart || 0;
+        const before = value.slice(0, this.mentionTriggerPos);
+        const after = value.slice(caret);
+        const insertion = `@${label} `;
+        this.messageInput.value = before + insertion + after;
+        const newCaret = (before + insertion).length;
+        this.messageInput.setSelectionRange(newCaret, newCaret);
+        this.closeMention();
+        this.updateSendButton();
+        this.autoResizeTextarea();
+
+        // Immediately capture and attach selected tab content (avoid duplicates)
+        try {
+            if (!this.attachedTabIds.has(chosen.id)) {
+                const file = await this.captureTabAsFile(chosen);
+                if (file) {
+                    this.attachedFiles.push(file);
+                    this.attachedTabIds.add(chosen.id);
+                    this.updateFilePreview();
+                    this.updateSendButton();
+                    this.showSuccessMessage(`Captured content from: ${file.title || 'Tab'}`);
+                }
+            }
+        } catch (e) {
+            this.showErrorMessage('Failed to capture mentioned tab');
+        }
+    }
+
+    async attachMentionedTabsIfAny(message) {
+        if (!message || !message.includes('@')) return;
+        // Extract tokens like @label
+        const tokens = new Set();
+        const re = /@([a-z0-9._-]{2,50})/gi;
+        let m;
+        while ((m = re.exec(message)) !== null) {
+            tokens.add(m[1].toLowerCase());
+        }
+        if (tokens.size === 0) return;
+
+        // Get current tabs
+        await this.fetchOpenTabs();
+        const tabsById = new Map(this.mentionTabs.map(t => [t.id, t]));
+        const tabs = this.mentionTabs;
+        const used = new Set();
+        let attachedCount = 0;
+
+        for (const token of tokens) {
+            let matchedTabs = [];
+            const mappedId = this.mentionLabelToTabId[token];
+            if (mappedId && tabsById.has(mappedId)) {
+                matchedTabs = [tabsById.get(mappedId)];
+            } else {
+                // fuzzy match: any tab whose title or host contains token
+                matchedTabs = tabs.filter(t => {
+                    const host = this.getHostname(t.url).toLowerCase();
+                    const title = (t.title || '').toLowerCase();
+                    return host.includes(token) || title.includes(token);
+                });
+            }
+            for (const t of matchedTabs) {
+                if (used.has(t.id) || this.attachedTabIds.has(t.id)) continue;
+                const file = await this.captureTabAsFile(t).catch(() => null);
+                if (file) {
+                    this.attachedFiles.push(file);
+                    this.attachedTabIds.add(t.id);
+                    attachedCount += 1;
+                    used.add(t.id);
+                }
+            }
+        }
+        if (attachedCount > 0) {
+            this.updateFilePreview();
+            this.updateSendButton();
+            this.showSuccessMessage(`Attached ${attachedCount} tab${attachedCount>1?'s':''} via mentions`);
+        }
+    }
+
+    async captureTabAsFile(tab) {
+        // Guard internal pages
+        const url = tab.url || '';
+        if (/^about:|^chrome:|^chrome-extension:|^moz-extension:/.test(url)) {
+            throw new Error('Cannot capture internal pages');
+        }
+        try {
+            const results = await browser.tabs.executeScript(tab.id, {
+                code: `
+                    (function() {
+                        const title = document.title;
+                        const url = window.location.href;
+                        let content = '';
+                        const contentSelectors = ['main','[role="main"]','article','.content','.main-content','.post-content','.entry-content','.article-content','body'];
+                        let contentElement = null;
+                        for (const selector of contentSelectors) {
+                            contentElement = document.querySelector(selector);
+                            if (contentElement) break;
+                        }
+                        if (contentElement) {
+                            const scripts = contentElement.querySelectorAll('script, style, nav, header, footer, .sidebar, .ads, .advertisement');
+                            scripts.forEach(el => el.remove());
+                            content = contentElement.innerText || contentElement.textContent || '';
+                        } else {
+                            content = document.body.innerText || document.body.textContent || '';
+                        }
+                        content = content.replace(/\\s+/g,' ').replace(/\\n\\s*\\n/g,'\\n').trim();
+                        if (content.length > 10000) {
+                            content = content.substring(0, 10000) + '...\\n[Content truncated for length]';
+                        }
+                        return { title, url, content };
+                    })();
+                `
+            });
+            if (!results || results.length === 0) throw new Error('No content');
+            const pageData = results[0];
+            return {
+                name: `${pageData.title || 'Webpage'}.txt`,
+                type: 'text/plain',
+                size: pageData.content.length,
+                dataUrl: `data:text/plain;base64,${btoa(unescape(encodeURIComponent(
+                    `Title: ${pageData.title}\nURL: ${pageData.url}\n\n${pageData.content}`
+                )))}`,
+                isWebpage: true,
+                url: pageData.url,
+                title: pageData.title,
+                tabId: tab.id
+            };
+        } catch (err) {
+            // Fallback attach stub with title + URL so the AI still has context
+            const title = tab.title || this.getHostname(tab.url) || 'Tab';
+            const urlText = tab.url || '';
+            const stub = `Title: ${title}\nURL: ${urlText}\n\n[Note] Could not capture page text due to site restrictions or permissions.`;
+            return {
+                name: `${title}.txt`,
+                type: 'text/plain',
+                size: stub.length,
+                dataUrl: `data:text/plain;base64,${btoa(unescape(encodeURIComponent(stub)))}`,
+                isWebpage: true,
+                url: urlText,
+                title,
+                tabId: tab.id,
+                isStub: true
+            };
         }
     }
 
@@ -2199,6 +2537,7 @@ class AIChat {
 
     clearAttachedFiles() {
         this.attachedFiles = [];
+        this.attachedTabIds = new Set();
         this.updateFilePreview();
     }
 
