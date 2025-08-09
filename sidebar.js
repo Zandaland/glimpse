@@ -626,7 +626,15 @@ class AIChat {
                     input.id = 'historySearchInput';
                     input.className = 'history-search';
                     input.placeholder = 'Search history...';
-                    header.insertBefore(input, header.querySelector('.close-btn'));
+                    const deleteBtn = header.querySelector('.delete-all-btn');
+                    const closeBtn = header.querySelector('.close-btn');
+                    if (deleteBtn) {
+                        header.insertBefore(input, deleteBtn);
+                    } else if (closeBtn) {
+                        header.insertBefore(input, closeBtn);
+                    } else {
+                        header.appendChild(input);
+                    }
                 }
             }
             this.historyPanel.addEventListener('input', (e) => {

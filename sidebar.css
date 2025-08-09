@@ -375,6 +375,26 @@ body {
     color: var(--text-primary);
 }
 
+/* Improve spacing consistency within each settings group */
+.setting-group > label + .checkbox-row,
+.setting-group > label + .input-wrapper,
+.setting-group > label + input,
+.setting-group > label + select,
+.setting-group > label + textarea {
+    margin-top: var(--spacing-xs);
+}
+
+/* Add bottom spacing between interactive rows inside a group */
+.setting-group .checkbox-row,
+.setting-group .input-wrapper,
+.setting-group > input,
+.setting-group > select,
+.setting-group > textarea,
+.setting-group > .profile-actions,
+.setting-group > .profile-files-list {
+    margin-bottom: var(--spacing-sm);
+}
+
 .input-wrapper input {
     padding-right: 48px;
 }
@@ -461,11 +481,11 @@ body {
     background: var(--primary-gradient);
     color: white;
     border: none;
-    padding: 12px var(--spacing-lg);
+    padding: 10px var(--spacing-lg);
     border-radius: var(--radius);
     cursor: pointer;
     font-weight: 500;
-    display: flex;
+    display: inline-flex;
     align-items: center;
     gap: var(--spacing-sm);
     transition: all 0.2s ease;
@@ -489,9 +509,49 @@ body {
 /* Personalization UI */
 .profile-actions {
     display: flex;
+    flex-wrap: wrap;
     gap: var(--spacing-sm);
     align-items: center;
-    margin-bottom: var(--spacing-sm);
+    /* Add a bit more breathing room above and below the row */
+    margin: var(--spacing-sm) 0 var(--spacing-md);
+}
+
+/* Normalize button sizing in Personalization actions */
+.profile-actions .action-btn,
+.profile-actions .primary-btn {
+    height: 36px;
+    padding: 0 var(--spacing-md);
+    line-height: 36px; /* vertically centers text in case of differences across browsers */
+}
+
+/* Ensure the "secondary" summary button behaves like a text button here, not a 32x32 icon button */
+.profile-actions .action-btn.secondary {
+    width: auto;
+    min-width: 0;
+    height: 36px;
+    padding: 0 var(--spacing-md);
+    line-height: 36px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.profile-actions .action-btn i,
+.profile-actions .primary-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+/* Ensure long button labels wrap nicely without overflowing */
+.profile-actions .action-btn,
+.profile-actions .primary-btn {
+    white-space: nowrap;
+}
+
+/* Slight tweak so the attach button label doesn't get cramped */
+.profile-actions .action-btn.attach {
+    padding-left: calc(var(--spacing-md) - 2px);
+    padding-right: var(--spacing-md);
 }
 
 .profile-files-list {
@@ -1121,7 +1181,8 @@ body {
     padding: var(--spacing-md);
     display: flex;
     align-items: center;
-    justify-content: space-between;
+    gap: var(--spacing-sm);
+    flex-wrap: nowrap;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -1129,6 +1190,8 @@ body {
     display: flex;
     align-items: center;
     gap: var(--spacing-sm);
+    flex: 1 1 auto;
+    min-width: 0; /* allow title to shrink */
 }
 
 .history-title h3 {
@@ -1246,14 +1309,43 @@ body {
 }
 
 .history-search {
-    flex: 1;
-    max-width: 40%;
+    flex: 1 1 40%;
+    min-width: 120px;
     margin: 0 var(--spacing-sm);
     padding: 8px 10px;
     border: 1px solid rgba(255,255,255,0.2);
     border-radius: var(--radius-sm);
     background: rgba(255,255,255,0.12);
     color: #fff;
+}
+
+/* Make header buttons match the gradient header style */
+.history-header .delete-all-btn {
+    flex: 0 0 auto; /* do not shrink */
+    background: rgba(255,255,255,0.12);
+    color: #fff;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: var(--radius-sm);
+    padding: 6px 10px;
+    height: 32px;
+    box-shadow: none;
+}
+.history-header .delete-all-btn:hover {
+    background: rgba(255,255,255,0.18);
+    border-color: rgba(255,255,255,0.3);
+    transform: translateY(-1px);
+}
+
+.history-header .close-btn {
+    flex: 0 0 auto; /* do not shrink */
+    min-width: 32px;
+    min-height: 32px;
+    background: rgba(255, 255, 255, 0.12);
+    border: 1px solid rgba(255,255,255,0.2);
+}
+.history-header .close-btn:hover {
+    background: rgba(255, 255, 255, 0.18);
+    border-color: rgba(255,255,255,0.3);
 }
 
 .history-search::placeholder {
